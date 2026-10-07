@@ -16,4 +16,10 @@ Planificación inicial. Los requisitos y las decisiones técnicas se concretará
 
 ## Alcance inicial
 
-El prototipo tendrá cuatro pistas, reservas de una hora, horarios según el día y los festivos, y un calendario de mantenimiento semanal y mensual. El trabajo se organizará en GitHub Projects.
+El prototipo tendrá cuatro pistas, reservas de una o dos horas, horarios según el día y los festivos. El trabajo se organizará en GitHub Projects.
+
+## Documentación
+
+- [Requisitos consolidados](docs/requisitos.md)
+- [Modelo entidad-relación](docs/modelo-er.drawio)
+- [Esquema de la base de datos](database/esquema.sql)
