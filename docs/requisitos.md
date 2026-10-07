@@ -1,9 +1,5 @@
 # Club Pádel Costa Brava — requisitos consolidados
 
-**Versión:** 2.6 · 7 de octubre de 2026  
-**Objetivo:** definir el alcance vigente para una entrega académica planificada alrededor de 99 horas.  
-**Fuentes:** enunciado `DAM_M13_Enunciat_2627.odt` y decisiones acordadas en la conversación.  
-**Criterio de lectura:** «obligatorio» procede del enunciado; «acordado» es una decisión del proyecto; «pendiente» requiere una elección técnica posterior. Las ideas descartadas no son requisitos de la versión de entrega.
 
 ## 1. Marco académico obligatorio
 
@@ -11,10 +7,7 @@
 - Dos clientes de tipos distintos: uno de jugadores y otro de escritorio para el personal. No habrá cliente web. La comunicación entre los clientes y el servidor será mediante API REST y JSON.
 - Lógica de negocio y acceso seguro a los datos en el servidor; base de datos relacional con modelos conceptual y relacional; autenticación y control de roles ADMIN y USER.
 - Repositorio accesible con un historial de commits representativo; backlog en una herramienta de gestión y captura del tablero.
-- Despliegue funcional accesible para la comprobación. Aunque el apartado de entrega pide la URL pública «si es posible», los requisitos técnicos piden un entorno activo; se planificará como necesario y se documentará cualquier impedimento real.
-- Entrega individual hasta el **20 de noviembre de 2026 a las 23:55**, con el archivo del enunciado completado (ODT o PDF), código fuente, documentación y vídeo. Está prevista una entrevista telemática posterior.
-- La documentación debe cubrir definición del proyecto, al menos dos competidores, presupuesto, protección de datos, innovación, comparación de metodologías y herramientas ágiles en inglés, planificación horaria, tecnologías, base de datos, documentación técnica y manual. La presentación mostrará proceso, código relevante y funcionamiento integrado.
-- El enunciado pide una previsión de horas por funcionalidad y por análisis/diseño, implementación y documentación. El reparto 25 % / 60 % / 15 % es orientativo; el backlog actualizado suma 99 horas previstas.
+- Despliegue funcional accesible para la comprobación.
 
 ## 2. Alcance y arquitectura acordados
 
