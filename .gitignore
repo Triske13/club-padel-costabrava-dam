@@ -32,3 +32,14 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Maven
+target/
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
