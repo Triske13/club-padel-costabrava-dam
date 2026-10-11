@@ -24,13 +24,12 @@ Los dos clientes se comunicarán con el servidor. Solo el servidor accederá a l
 
 ## Estado
 
-El diseño inicial está finalizado y la base técnica está en preparación.
-
-El servidor ya arranca; Android y escritorio siguen pendientes.
+El servidor ya arranca; Android y escritorio ya arrancan y consultan la API, mientras sus funciones de reservas y administración siguen pendientes.
 
 El prototipo contempla cuatro pistas, reservas de una o dos horas y horarios según el día de la semana o los festivos aplicables.
 
 El trabajo se organiza en GitHub Projects.
+
 
 ## Puesta en marcha del servidor
 
@@ -57,11 +56,12 @@ Instalar Java 21 o superior y PostgreSQL.
 Flyway aplicará automáticamente las migraciones de server/src/main/resources/db/migration; no hay que ejecutar database/esquema.sql manualmente. Para comprobar la conexión, abrir http://localhost:8080/api/diagnostico. La respuesta inicial debe indicar 4 pistas.
 
 
+## Ejecutar los clientes de demostración
 
-## Alcance Inicial
+El servidor debe estar en marcha antes de abrir los clientes.
 
-El prototipo tendrá cuatro pistas, reservas de una o dos horas, horarios según el día y los festivos. El trabajo se organizará en GitHub Projects.
-
+- **Android:** abrir `android/` en Android Studio, seleccionar un emulador y pulsar Run. La app consulta `/api/diagnostico`. Su dirección local se define en `ApiConfig.kt`.
+- **Windows:** abrir `desktop/` en IntelliJ IDEA, ejecutar `Launcher.main()` y pulsar «Comprobar servidor». Su dirección local se define en `ApiConfig.java`.
 
 
 ## Documentación
