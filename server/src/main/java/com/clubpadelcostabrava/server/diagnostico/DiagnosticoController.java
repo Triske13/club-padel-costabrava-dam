@@ -1,4 +1,4 @@
-package com.clubpadelcostabrava.server;
+package com.clubpadelcostabrava.server.diagnostico;
 
 import java.util.Map;
 
