@@ -1,12 +1,12 @@
 package com.clubpadelcostabrava.server.config;
 
-import java.util.Locale;
-
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.Locale;
 
 @Component
 public class AdminInicial implements ApplicationRunner {

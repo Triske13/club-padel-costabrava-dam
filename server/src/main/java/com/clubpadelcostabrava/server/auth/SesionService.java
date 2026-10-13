@@ -1,5 +1,7 @@
 package com.clubpadelcostabrava.server.auth;
 
+import org.springframework.stereotype.Service;
+
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -7,8 +9,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.springframework.stereotype.Service;
 
 @Service
 public class SesionService {

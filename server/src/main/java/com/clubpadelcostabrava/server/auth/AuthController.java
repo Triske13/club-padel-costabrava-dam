@@ -1,8 +1,6 @@
 package com.clubpadelcostabrava.server.auth;
 
-import java.time.Instant;
-import java.util.Locale;
-
+import com.clubpadelcostabrava.server.api.ErrorApi;
 import com.clubpadelcostabrava.server.cuenta.CuentaRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -12,6 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -97,5 +98,4 @@ public class AuthController {
 
     public record LoginPeticion(String correo, String contrasena) {}
     public record LoginRespuesta(String token, String rol, Instant expiraEn) {}
-    public record ErrorApi(String codigo, String mensaje) {}
 }

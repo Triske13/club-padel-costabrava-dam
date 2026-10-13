@@ -1,13 +1,13 @@
 package com.clubpadelcostabrava.server.auth;
 
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.stereotype.Service;
 
 @Service
 public class LimiteLogin {

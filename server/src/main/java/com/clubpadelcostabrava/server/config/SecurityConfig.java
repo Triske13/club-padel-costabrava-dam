@@ -1,19 +1,19 @@
 package com.clubpadelcostabrava.server.config;
 
+import com.clubpadelcostabrava.server.auth.FiltroSesion;
+import com.clubpadelcostabrava.server.auth.SesionService;
+import com.clubpadelcostabrava.server.cuenta.CuentaRepository;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
-import com.clubpadelcostabrava.server.auth.FiltroSesion;
-import com.clubpadelcostabrava.server.auth.SesionService;
-import com.clubpadelcostabrava.server.cuenta.CuentaRepository;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.DispatcherType;
 
 @Configuration
 public class SecurityConfig {

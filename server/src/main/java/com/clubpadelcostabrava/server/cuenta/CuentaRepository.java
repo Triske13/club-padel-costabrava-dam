@@ -1,9 +1,9 @@
 package com.clubpadelcostabrava.server.cuenta;
 
-import java.util.Optional;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 public class CuentaRepository {
@@ -57,5 +57,32 @@ public class CuentaRepository {
                 rol
         );
         return cantidad != null && cantidad == 1;
+    }
+
+    public Optional<String> hashAdministrador(int cuentaId) {
+        return jdbcTemplate.query(
+                """
+                SELECT contrasena_hash
+                FROM cuenta
+                WHERE id = ? AND rol = 'ADMIN'
+                """,
+                (rs, fila) -> rs.getString("contrasena_hash"),
+                cuentaId
+        ).stream().findFirst();
+    }
+
+    public Optional<Integer> idUsuarioPorSocio(int socioId) {
+        return jdbcTemplate.query(
+                "SELECT id FROM cuenta WHERE socio_id = ? AND rol = 'USER'",
+                (rs, fila) -> rs.getInt("id"),
+                socioId
+        ).stream().findFirst();
+    }
+
+    public void eliminarCodigoPendiente(int cuentaId) {
+        jdbcTemplate.update(
+                "DELETE FROM codigo_temporal WHERE cuenta_id = ?",
+                cuentaId
+        );
     }
 }
