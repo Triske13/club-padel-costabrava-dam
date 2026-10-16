@@ -106,4 +106,17 @@ public class CuentaRepository {
                 cuentaId
         );
     }
+
+    /** Obtiene el hash de la cuenta autenticada para comprobar su contraseña actual. */
+    public Optional<String> buscarHashPorId(int cuentaId) {
+        return jdbcTemplate.query(
+                """
+                        SELECT contrasena_hash
+                        FROM cuenta
+                        WHERE id = ? AND contrasena_hash IS NOT NULL
+                        """,
+                (rs, fila) -> rs.getString("contrasena_hash"),
+                cuentaId
+        ).stream().findFirst();
+    }
 }

@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Atiende las peticiones públicas de acceso a la aplicación. */
+/** Gestiona el acceso por contraseña o código y el cierre de sesión. */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -190,6 +190,17 @@ public class AuthController {
 
         sesiones.invalidarCuenta(cuentaId.get());
         limiteLogin.reiniciarCorreo(correo);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Cierra la sesión asociada al token usado en esta petición. */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String cabecera = request.getHeader("Authorization");
+        String token = cabecera.substring("Bearer ".length());
+
+        sesiones.invalidar(token);
 
         return ResponseEntity.noContent().build();
     }
