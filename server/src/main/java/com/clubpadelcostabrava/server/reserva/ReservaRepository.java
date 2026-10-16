@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+/** Contiene las operaciones SQL sobre reservas usadas en este bloque. */
 @Repository
 public class ReservaRepository {
     private final JdbcTemplate jdbcTemplate;
@@ -15,6 +16,7 @@ public class ReservaRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** Cancela las reservas confirmadas que aún no empiezan y libera sus ocupaciones. */
     public List<ReservaCancelada> cancelarFuturasDeSocio(int socioId, int adminId) {
         List<ReservaCancelada> canceladas = jdbcTemplate.query(
                 """
@@ -40,6 +42,7 @@ public class ReservaRepository {
                 socioId
         );
 
+        // Cada ocupación eliminada devuelve esa hora de pista a la disponibilidad.
         for (ReservaCancelada reserva : canceladas) {
             jdbcTemplate.update(
                     "DELETE FROM ocupacion WHERE reserva_id = ?",
@@ -50,6 +53,7 @@ public class ReservaRepository {
         return canceladas;
     }
 
+    /** Datos de las reservas canceladas necesarios para redactar el aviso. */
     public record ReservaCancelada(
             int id,
             int pistaId,

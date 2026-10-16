@@ -15,9 +15,11 @@ import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
+/** Define la autenticación, los permisos por ruta y el codificador de contraseñas. */
 @Configuration
 public class SecurityConfig {
 
+    /** Configura una API sin sesión HTTP y coloca el filtro de tokens antes de autorizar. */
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -65,6 +67,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /** Expone PBKDF2 para crear hashes y verificar contraseñas en toda la aplicación. */
     @Bean
     PasswordEncoder passwordEncoder() {
         return Pbkdf2PasswordEncoder.defaultsForSpringSecurity_v5_8();

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+/** Ejecuta las consultas SQL de fichas de socios y sus cuentas USER. */
 @Repository
 public class SocioRepository {
     private final JdbcTemplate jdbcTemplate;
@@ -17,6 +18,7 @@ public class SocioRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    // El JOIN une la ficha con su cuenta; la contraseña solo indica si se activó.
     private static final String SELECT_SOCIO = """
         SELECT s.id, s.nombre, s.apellidos, s.telefono,
                s.direccion, s.poblacion, s.estado, c.correo,
@@ -26,6 +28,7 @@ public class SocioRepository {
         WHERE c.rol = 'USER'
         """;
 
+    /** Devuelve todas las fichas ordenadas por identificador. */
     public List<SocioRespuesta> listar() {
         return jdbcTemplate.query(
                 SELECT_SOCIO + " ORDER BY s.id",
@@ -33,6 +36,7 @@ public class SocioRepository {
         );
     }
 
+    /** Filtra por ID exacto o por fragmentos del nombre y del correo. */
     public List<SocioRespuesta> buscar(String texto) {
         if (texto == null || texto.isBlank()) {
             return listar();
@@ -53,6 +57,7 @@ public class SocioRepository {
         );
     }
 
+    /** Bloquea la fila del socio durante un cambio de estado concurrente. */
     public Optional<SocioRespuesta> buscarPorIdParaCambio(int id) {
         return jdbcTemplate.query(
                 SELECT_SOCIO + " AND s.id = ? FOR UPDATE OF s",
@@ -61,6 +66,7 @@ public class SocioRepository {
         ).stream().findFirst();
     }
 
+    /** Busca una ficha por ID sin bloquearla. */
     public Optional<SocioRespuesta> buscarPorId(int id) {
         return jdbcTemplate.query(
                 SELECT_SOCIO + " AND s.id = ?",
@@ -69,6 +75,7 @@ public class SocioRepository {
         ).stream().findFirst();
     }
 
+    /** Inserta la ficha y devuelve el ID asignado por PostgreSQL. */
     public int insertarFicha(CrearSocioPeticion datos) {
         return jdbcTemplate.queryForObject(
                 """
@@ -85,6 +92,7 @@ public class SocioRepository {
         );
     }
 
+    /** Crea la cuenta USER asociada, inicialmente sin contraseña. */
     public void insertarCuenta(int socioId, String correo) {
         jdbcTemplate.update(
                 "INSERT INTO cuenta (socio_id, correo, rol) VALUES (?, ?, 'USER')",
@@ -93,6 +101,7 @@ public class SocioRepository {
         );
     }
 
+    /** Guarda datos personales y devuelve el número de filas modificadas. */
     public int actualizarFicha(int id, EditarSocioPeticion datos) {
         return jdbcTemplate.update(
                 """
@@ -110,6 +119,7 @@ public class SocioRepository {
         );
     }
 
+    /** Cambia el correo de la cuenta USER y devuelve su ID. */
     public Optional<Integer> actualizarCorreo(int socioId, String nuevoCorreo) {
         return jdbcTemplate.query(
                 """
@@ -124,6 +134,7 @@ public class SocioRepository {
         ).stream().findFirst();
     }
 
+    /** Actualiza ACTIVO o INACTIVO en la ficha del socio. */
     public int actualizarEstado(int socioId, String estado) {
         return jdbcTemplate.update(
                 "UPDATE socio SET estado = ? WHERE id = ?",
@@ -132,6 +143,7 @@ public class SocioRepository {
         );
     }
 
+    /** Convierte una fila SQL en la respuesta que recibirá el cliente. */
     private SocioRespuesta mapear(ResultSet rs, int fila) throws SQLException {
         return new SocioRespuesta(
                 rs.getInt("id"),

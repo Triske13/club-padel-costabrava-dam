@@ -14,16 +14,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+/** Lee el token Bearer y prepara la identidad antes de comprobar permisos. */
 public class FiltroSesion extends OncePerRequestFilter {
 
     private final SesionService sesiones;
     private final CuentaRepository cuentas;
 
+    /** Recibe el almacén de sesiones y el acceso a las cuentas. */
     public FiltroSesion(SesionService sesiones, CuentaRepository cuentas) {
         this.sesiones = sesiones;
         this.cuentas = cuentas;
     }
 
+    /** Comprueba el token y la cuenta; si son válidos, continúa la petición autenticada. */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -72,6 +75,7 @@ public class FiltroSesion extends OncePerRequestFilter {
         }
     }
 
+    /** Excluye del filtro las rutas públicas que no requieren un token previo. */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String ruta = request.getServletPath();
@@ -82,6 +86,7 @@ public class FiltroSesion extends OncePerRequestFilter {
                 || "/api/auth/contrasena".equals(ruta);
     }
 
+    /** Devuelve el error JSON común para un token inválido o una cuenta inhabilitada. */
     private void responderSesionInvalida(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");

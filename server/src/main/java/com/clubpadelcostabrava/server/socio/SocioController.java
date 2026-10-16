@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/** Expone a los administradores las operaciones HTTP de gestión de socios. */
 @RestController
 @RequestMapping("/api/admin/socios")
 public class SocioController {
@@ -29,6 +30,7 @@ public class SocioController {
         this.avisos = avisos;
     }
 
+    /** Lista todos los socios o filtra por identificador, nombre o correo. */
     @GetMapping
     public List<SocioRespuesta> listar(
             @RequestParam(value = "buscar", required = false) String buscar
@@ -36,6 +38,7 @@ public class SocioController {
         return socios.buscar(buscar);
     }
 
+    /** Devuelve la ficha solicitada o un error 404 si no existe. */
     @GetMapping("/{id}")
     public ResponseEntity<?> detalle(@PathVariable("id") int id) {
         Optional<SocioRespuesta> encontrado = socios.buscarPorId(id);
@@ -48,6 +51,7 @@ public class SocioController {
         return ResponseEntity.ok(encontrado.get());
     }
 
+    /** Actualiza los datos personales y traduce los errores de validación a HTTP. */
     @PutMapping("/{id}")
     public ResponseEntity<?> editar(
             @PathVariable("id") int id,
@@ -68,6 +72,7 @@ public class SocioController {
         }
     }
 
+    /** Cambia el correo tras verificar la contraseña del administrador autenticado. */
     @PutMapping("/{id}/correo")
     public ResponseEntity<?> cambiarCorreo(
             @PathVariable("id") int id,
@@ -98,6 +103,7 @@ public class SocioController {
         }
     }
 
+    /** Crea la ficha y su cuenta USER todavía sin contraseña. */
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody(required = false) CrearSocioPeticion datos) {
         try {
@@ -112,6 +118,7 @@ public class SocioController {
         }
     }
 
+    /** Cambia el estado; después invalida sesiones y avisa por correo si hubo cancelaciones. */
     @PutMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstado(
             @PathVariable("id") int id,
@@ -131,10 +138,12 @@ public class SocioController {
 
             SocioService.ResultadoEstado cambio = resultado.get();
 
+            // La invalidación de sesiones se aplica tras completar el cambio en la base de datos.
             if (cambio.cambiado()) {
                 sesiones.invalidarCuenta(cambio.cuentaId());
             }
 
+            // El fallo del correo no revierte las reservas ya canceladas.
             String avisoCorreo = "NO_APLICA";
             if (!cambio.reservasCanceladas().isEmpty()) {
                 avisoCorreo = avisos.avisarInactivacion(

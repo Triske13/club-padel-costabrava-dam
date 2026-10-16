@@ -5,15 +5,18 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/** Ejecuta las consultas de cuentas usadas por el acceso y la administración. */
 @Repository
 public class CuentaRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /** Recibe JdbcTemplate para ejecutar SQL con parámetros. */
     public CuentaRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** Busca una cuenta y, si es USER, incorpora el estado de su ficha de socio. */
     public Optional<CuentaAcceso> buscarPorCorreo(String correo) {
         return jdbcTemplate.query(
                 """
@@ -34,6 +37,7 @@ public class CuentaRepository {
         ).stream().findFirst();
     }
 
+    /** Datos de cuenta necesarios para verificar credenciales y estado. */
     public record CuentaAcceso(
             int id,
             String correo,
@@ -41,6 +45,7 @@ public class CuentaRepository {
             String rol,
             String estadoSocio
     ) {}
+    /** Comprueba en cada petición que la cuenta aún puede usar su token. */
     public boolean cuentaHabilitada(int cuentaId, String rol) {
         Integer cantidad = jdbcTemplate.queryForObject(
                 """
@@ -59,6 +64,7 @@ public class CuentaRepository {
         return cantidad != null && cantidad == 1;
     }
 
+    /** Obtiene el hash del ADMIN para confirmar su contraseña antes de cambiar un correo. */
     public Optional<String> hashAdministrador(int cuentaId) {
         return jdbcTemplate.query(
                 """
@@ -71,6 +77,7 @@ public class CuentaRepository {
         ).stream().findFirst();
     }
 
+    /** Localiza la cuenta USER asociada a una ficha de socio. */
     public Optional<Integer> idUsuarioPorSocio(int socioId) {
         return jdbcTemplate.query(
                 "SELECT id FROM cuenta WHERE socio_id = ? AND rol = 'USER'",
@@ -79,9 +86,23 @@ public class CuentaRepository {
         ).stream().findFirst();
     }
 
+    /** Anula el código temporal de una cuenta cuando deja de ser válido. */
     public void eliminarCodigoPendiente(int cuentaId) {
         jdbcTemplate.update(
                 "DELETE FROM codigo_temporal WHERE cuenta_id = ?",
+                cuentaId
+        );
+    }
+
+    /** Guarda el nuevo hash de contraseña de una cuenta. */
+    public void actualizarContrasenaHash(int cuentaId, String contrasenaHash) {
+        jdbcTemplate.update(
+                """
+                        UPDATE cuenta
+                        SET contrasena_hash = ?
+                        WHERE id = ?
+                        """,
+                contrasenaHash,
                 cuentaId
         );
     }

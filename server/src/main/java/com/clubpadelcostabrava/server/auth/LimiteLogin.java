@@ -9,6 +9,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Mantiene en memoria los fallos de acceso por correo e IP durante quince minutos. */
 @Service
 public class LimiteLogin {
 
@@ -17,12 +18,14 @@ public class LimiteLogin {
     private final Map<String, Estado> porCorreo = new HashMap<>();
     private final Map<String, Estado> porIp = new HashMap<>();
 
+    /** Indica si el correo o la IP siguen dentro de una pausa; no añade un fallo. */
     public synchronized boolean estaPausado(String correo, String ip) {
         Instant ahora = Instant.now();
         return estaPausado(porCorreo, correo, ahora)
                 || estaPausado(porIp, ip, ahora);
     }
 
+    /** Añade un fallo a ambos contadores y avisa si alguno alcanza su límite. */
     public synchronized boolean registrarFallo(String correo, String ip) {
         Instant ahora = Instant.now();
         boolean correoPausado = registrar(porCorreo, correo, 5, ahora);
@@ -30,10 +33,12 @@ public class LimiteLogin {
         return correoPausado || ipPausada;
     }
 
+    /** Borra los fallos de ese correo tras un acceso correcto, sin borrar los de la IP. */
     public synchronized void reiniciarCorreo(String correo) {
         porCorreo.remove(correo);
     }
 
+    /** Consulta un contador, descarta fallos antiguos y comprueba la pausa vigente. */
     private boolean estaPausado(
             Map<String, Estado> registros, String clave, Instant ahora
     ) {
@@ -52,6 +57,7 @@ public class LimiteLogin {
         return false;
     }
 
+    /** Registra la hora del fallo y fija la pausa cuando se alcanza el máximo. */
     private boolean registrar(
             Map<String, Estado> registros, String clave, int maximo, Instant ahora
     ) {
@@ -66,6 +72,7 @@ public class LimiteLogin {
         return false;
     }
 
+    /** Elimina los intentos que han salido de la ventana de quince minutos. */
     private void limpiarFallos(Estado estado, Instant ahora) {
         Instant limite = ahora.minus(VENTANA);
         while (!estado.fallos.isEmpty()
@@ -74,6 +81,7 @@ public class LimiteLogin {
         }
     }
 
+    /** Guarda las horas de los fallos y, si procede, el fin de la pausa. */
     private static class Estado {
         private final Deque<Instant> fallos = new ArrayDeque<>();
         private Instant pausaHasta;

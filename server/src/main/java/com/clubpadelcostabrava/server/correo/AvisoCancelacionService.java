@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/** Prepara y envía el aviso de reservas canceladas por inactivación. */
 @Service
 public class AvisoCancelacionService {
     private final JavaMailSender mailSender;
@@ -26,6 +27,7 @@ public class AvisoCancelacionService {
         this.remitente = remitente;
     }
 
+    /** Devuelve si el servidor de correo aceptó el mensaje; registra los fallos. */
     public boolean avisarInactivacion(
             String destinatario, List<ReservaCancelada> canceladas
     ) {

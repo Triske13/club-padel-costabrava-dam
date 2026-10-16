@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+/** Aplica las reglas de negocio de socios y coordina los cambios de base de datos. */
 @Service
 public class SocioService {
     private final SocioRepository socios;
@@ -34,6 +35,7 @@ public class SocioService {
         this.reservas = reservas;
     }
 
+    /** Guarda ficha y cuenta en una misma transacción. */
     @Transactional
     public SocioRespuesta crear(CrearSocioPeticion datos) {
         CrearSocioPeticion limpio = validar(datos);
@@ -42,6 +44,7 @@ public class SocioService {
         return socios.buscarPorId(id).orElseThrow();
     }
 
+    /** Modifica la ficha, dejando el correo para su operación específica. */
     @Transactional
     public Optional<SocioRespuesta> editar(int id, EditarSocioPeticion datos) {
         EditarSocioPeticion limpio = validar(datos);
@@ -54,6 +57,7 @@ public class SocioService {
         return socios.buscarPorId(id);
     }
 
+    /** Cambia el correo y anula los códigos y sesiones anteriores de esa cuenta. */
     @Transactional
     public Optional<SocioRespuesta> cambiarCorreo(
             int socioId, int adminId, CambiarCorreoPeticion datos
@@ -81,6 +85,7 @@ public class SocioService {
         return socios.buscarPorId(socioId);
     }
 
+    /** Inactiva o reactiva; al inactivar cancela reservas futuras y libera sus horas. */
     @Transactional
     public Optional<ResultadoEstado> cambiarEstado(
             int socioId, int adminId, CambiarEstadoPeticion datos
@@ -95,6 +100,7 @@ public class SocioService {
         SocioRespuesta socio = encontrado.get();
         int cuentaId = cuentas.idUsuarioPorSocio(socioId).orElseThrow();
 
+        // Repetir el mismo estado no provoca nuevas cancelaciones.
         if (socio.estado().equals(nuevoEstado)) {
             return Optional.of(new ResultadoEstado(
                     nuevoEstado, socio.correo(), cuentaId, false, List.of()
@@ -114,6 +120,7 @@ public class SocioService {
         ));
     }
 
+    /** Quita espacios exteriores y comprueba presencia y longitud máxima. */
     private String obligatorio(String valor, String campo, int maximo) {
         if (valor == null) {
             throw new IllegalArgumentException("El campo " + campo + " es obligatorio.");
@@ -132,6 +139,7 @@ public class SocioService {
         return limpio;
     }
 
+    /** Valida y normaliza los datos necesarios para crear un socio. */
     private CrearSocioPeticion validar(CrearSocioPeticion datos) {
         if (datos == null) {
             throw new IllegalArgumentException("Faltan los datos del socio.");
@@ -149,6 +157,7 @@ public class SocioService {
         );
     }
 
+    /** Valida los datos personales editables de un socio. */
     private EditarSocioPeticion validar(EditarSocioPeticion datos) {
         if (datos == null) {
             throw new IllegalArgumentException("Faltan los datos del socio.");
@@ -163,6 +172,7 @@ public class SocioService {
         );
     }
 
+    /** Acepta únicamente los dos estados definidos para los socios. */
     private String validarEstado(CambiarEstadoPeticion datos) {
         if (datos == null || datos.estado() == null) {
             throw new IllegalArgumentException("El estado es obligatorio.");
@@ -176,6 +186,7 @@ public class SocioService {
         return estado;
     }
 
+    /** Compara la contraseña recibida con el hash del administrador autenticado. */
     private void comprobarContrasenaAdmin(int adminId, String contrasena) {
         boolean correcta = contrasena != null
                 && cuentas.hashAdministrador(adminId)
@@ -187,6 +198,7 @@ public class SocioService {
         }
     }
 
+    /** Convierte el correo a minúsculas y comprueba un formato básico. */
     private String normalizarCorreo(String valor) {
         String correo = obligatorio(valor, "correo", 255)
                 .toLowerCase(Locale.ROOT);
@@ -198,6 +210,7 @@ public class SocioService {
         return correo;
     }
 
+    /** Resultado usado para invalidar sesiones y enviar avisos fuera de la transacción. */
     public record ResultadoEstado(
             String estado,
             String correo,
