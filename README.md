@@ -26,6 +26,8 @@ Los dos clientes se comunicarán con el servidor. Solo el servidor accederá a l
 
 El servidor ya arranca; Android y escritorio ya arrancan y consultan la API, mientras sus funciones de reservas y administración siguen pendientes.
 
+La migración V2 carga los 14 festivos de Roses correspondientes a 2026. La lista local todavía no cubre 2027, que queda fuera del alcance inicial. Fuente: calendario de fiestas laborales del Ayuntamiento de Roses.
+
 El prototipo contempla cuatro pistas, reservas de una o dos horas y horarios según el día de la semana o los festivos aplicables.
 
 El trabajo se organiza en GitHub Projects.
