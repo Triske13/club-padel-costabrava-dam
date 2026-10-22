@@ -23,9 +23,7 @@ public class FestivoRepository {
                         """,
                 Boolean.class,
                 fecha
-
         );
-
         return Boolean.TRUE.equals(resultado);
     }
 }

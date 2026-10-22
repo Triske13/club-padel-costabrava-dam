@@ -77,7 +77,7 @@ public class SocioRepository {
 
     /** Inserta la ficha y devuelve el ID asignado por PostgreSQL. */
     public int insertarFicha(CrearSocioPeticion datos) {
-        return jdbcTemplate.queryForObject(
+        Integer id = jdbcTemplate.queryForObject(
                 """
                 INSERT INTO socio (nombre, apellidos, telefono, direccion, poblacion)
                 VALUES (?, ?, ?, ?, ?)
@@ -90,6 +90,10 @@ public class SocioRepository {
                 datos.direccion(),
                 datos.poblacion()
         );
+        if (id == null) {
+            throw new IllegalStateException("La base de datos no devolvió el ID.");
+        }
+        return id;
     }
 
     /** Crea la cuenta USER asociada, inicialmente sin contraseña. */
