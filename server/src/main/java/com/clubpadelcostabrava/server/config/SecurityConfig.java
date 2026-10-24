@@ -58,6 +58,8 @@ public class SecurityConfig {
                                 "/api/auth/codigo",
                                 "/api/auth/contrasena").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/mis-reservas", "/api/mis-reservas/**")
+                        .hasRole("USER")
                         .anyRequest().authenticated()
                 );
         http.addFilterBefore(

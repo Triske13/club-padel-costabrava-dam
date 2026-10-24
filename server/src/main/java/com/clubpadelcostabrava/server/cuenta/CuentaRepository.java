@@ -45,6 +45,7 @@ public class CuentaRepository {
             String rol,
             String estadoSocio
     ) {}
+
     /** Comprueba en cada petición que la cuenta aún puede usar su token. */
     public boolean cuentaHabilitada(int cuentaId, String rol) {
         Integer cantidad = jdbcTemplate.queryForObject(
@@ -83,6 +84,20 @@ public class CuentaRepository {
                 "SELECT id FROM cuenta WHERE socio_id = ? AND rol = 'USER'",
                 (rs, fila) -> rs.getInt("id"),
                 socioId
+        ).stream().findFirst();
+    }
+
+    /** Obtiene el socio asociado a una cuenta USER autenticada. */
+    public Optional<Integer> socioIdPorCuenta(int cuentaId) {
+        return jdbcTemplate.query(
+                """
+                SELECT socio_id
+                FROM cuenta
+                WHERE id = ?
+                  AND rol = 'USER'
+                """,
+                (rs, fila) -> rs.getInt("socio_id"),
+                cuentaId
         ).stream().findFirst();
     }
 
