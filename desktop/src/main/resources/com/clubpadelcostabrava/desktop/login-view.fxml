@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.clubpadelcostabrava.desktop.ui.LoginController"
+      alignment="CENTER" spacing="12" prefWidth="420" prefHeight="300">
+    <Label text="Acceso de administración"/>
+    <TextField fx:id="correoField" promptText="Correo"/>
+    <PasswordField fx:id="contrasenaField" promptText="Contraseña"/>
+    <Button fx:id="entrarButton" text="Entrar" onAction="#onEntrar"/>
+    <Label fx:id="mensajeLabel"/>
+</VBox>

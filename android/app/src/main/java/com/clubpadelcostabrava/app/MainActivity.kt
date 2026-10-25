@@ -4,23 +4,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.clubpadelcostabrava.app.data.ApiCliente
+import com.clubpadelcostabrava.app.data.Sesion
+import com.clubpadelcostabrava.app.ui.auth.LoginScreen
+import com.clubpadelcostabrava.app.ui.reservas.ReservasScreen
 import com.clubpadelcostabrava.app.ui.theme.ClubPadelCostaBravaTheme
+import kotlinx.coroutines.launch
+import org.json.JSONException
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,46 +30,47 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ClubPadelCostaBravaTheme {
+                val api = remember { ApiCliente() }
+                val scope = rememberCoroutineScope()
+                var sesion by remember { mutableStateOf<Sesion?>(null) }
+                var cargando by remember { mutableStateOf(false) }
+                var error by remember { mutableStateOf<String?>(null) }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    DiagnosticoScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        if (sesion == null) {
+                            LoginScreen(
+                                cargando = cargando,
+                                error = error,
+                                onEntrar = { correo, contrasena ->
+                                    scope.launch {
+                                        cargando = true
+                                        error = null
 
-@Composable
-private fun DiagnosticoScreen(modifier: Modifier = Modifier) {
-    var mensaje by remember { mutableStateOf("Consultando servidor...") }
-
-    LaunchedEffect(Unit) {
-        mensaje = try {
-            withContext(Dispatchers.IO) {
-                val conexion = URL(
-                    "${ApiConfig.BASE_URL}/api/diagnostico"
-                ).openConnection() as HttpURLConnection
-
-                conexion.connectTimeout = 5000
-                conexion.readTimeout = 5000
-
-                try {
-                    if (conexion.responseCode == HttpURLConnection.HTTP_OK) {
-                        conexion.inputStream.bufferedReader().use {
-                            it.readText()
+                                        try {
+                                            val nuevaSesion = api.iniciarSesion(correo, contrasena)
+                                            if (nuevaSesion.rol == "USER") {
+                                                sesion = nuevaSesion
+                                            } else {
+                                                error = "Esta aplicación solo permite cuentas de socio."
+                                            }
+                                        } catch (e: IOException) {
+                                            error = e.message ?: "No se pudo iniciar sesión."
+                                        } catch (e: JSONException) {
+                                            error = "La respuesta del servidor no es válida."
+                                        } finally {
+                                            cargando = false
+                                        }
+                                    }
+                                }
+                            )
+                        } else {
+                            sesion?.let { sesionActual ->
+                                ReservasScreen(sesion = sesionActual, api = api)
+                            }
                         }
-                    } else {
-                        "Error HTTP ${conexion.responseCode}"
                     }
-                } finally {
-                    conexion.disconnect()
                 }
             }
-        } catch (e: IOException) {
-            "Error de conexión: ${e.message ?: "desconocido"}"
         }
     }
-
-    Text(text = mensaje, modifier = modifier)
 }

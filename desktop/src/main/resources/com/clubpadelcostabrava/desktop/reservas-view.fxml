@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.clubpadelcostabrava.desktop.ui.ReservasController"
+      spacing="12" prefWidth="780" prefHeight="520"
+      style="-fx-padding: 20;">
+    <Label text="Reservas de administración"/>
+    <Label text="Nueva reserva"/>
+    <HBox spacing="8">
+        <TextField fx:id="socioIdField" promptText="ID socio" prefWidth="90"/>
+        <TextField fx:id="pistaIdField" promptText="ID pista" prefWidth="90"/>
+        <DatePicker fx:id="fechaPicker" prefWidth="145"/>
+        <TextField fx:id="horaInicioField" promptText="Hora HH:mm" prefWidth="105"/>
+        <Label text="Horas:"/>
+        <ComboBox fx:id="duracionBox" prefWidth="70"/>
+        <Button fx:id="crearButton" text="Crear" onAction="#onCrear"/>
+    </HBox>
+    <Button text="Recargar" onAction="#onRecargar"/>
+    <Label fx:id="mensajeLabel"/>
+    <ListView fx:id="reservasList"/>
+</VBox>

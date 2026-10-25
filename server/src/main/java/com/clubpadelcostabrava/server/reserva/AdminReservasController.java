@@ -6,11 +6,10 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 
 /** Atiende las operaciones de reservas realizadas por administración. */
@@ -63,5 +62,34 @@ public class AdminReservasController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new ErrorApi("FRANJA_OCUPADA", "Alguna hora de la pista ya está ocupada."));
         }
+    }
+
+    /** Lista reservas con los filtros opcionales de administración. */
+    @GetMapping
+    public ResponseEntity<?> listar(
+            @RequestParam(value = "fecha", required = false) String fechaTexto,
+            @RequestParam(value = "pistaId", required = false) String pistaIdTexto,
+            @RequestParam(value = "socioId", required = false) String socioIdTexto
+    ) {
+        LocalDate fecha;
+        Integer pistaId;
+        Integer socioId;
+
+        try {
+            fecha = fechaTexto == null ? null : LocalDate.parse(fechaTexto);
+            pistaId = pistaIdTexto == null ? null : Integer.valueOf(pistaIdTexto);
+            socioId = socioIdTexto == null ? null : Integer.valueOf(socioIdTexto);
+        } catch (DateTimeParseException | NumberFormatException e) {
+
+            return ResponseEntity.badRequest().body(new ErrorApi("DATOS_INVALIDOS", "Filtros de reserva no válidos."));
+        }
+
+        if ((pistaId != null && pistaId <= 0)
+                || (socioId != null && socioId <= 0)) {
+
+            return ResponseEntity.badRequest().body(new ErrorApi("DATOS_INVALIDOS", "Los identificadores deben ser positivos."));
+        }
+
+        return ResponseEntity.ok(servicio.listarParaAdmin(fecha, pistaId, socioId));
     }
 }

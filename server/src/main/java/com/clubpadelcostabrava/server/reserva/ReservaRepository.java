@@ -3,10 +3,13 @@ package com.clubpadelcostabrava.server.reserva;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -208,23 +211,106 @@ public class ReservaRepository {
                 LEFT JOIN cuenta c ON c.id = r.cancelada_por_cuenta_id
                 WHERE r.id = ?
                 """,
-                (rs, fila) -> new ReservaDatos(
-                        rs.getInt("id"),
-                        rs.getInt("socio_id"),
-                        rs.getString("socio_nombre"),
-                        rs.getInt("pista_id"),
-                        rs.getString("pista_nombre"),
-                        rs.getObject("fecha", LocalDate.class),
-                        rs.getObject("hora_inicio", LocalTime.class),
-                        rs.getInt("duracion"),
-                        rs.getString("estado"),
-                        rs.getObject("creada_en", OffsetDateTime.class),
-                        rs.getObject("cancelada_en", OffsetDateTime.class),
-                        rs.getString("cancelada_por"),
-                        rs.getString("motivo_cancelacion")
-                ),
+                this::mapearReserva,
                 reservaId
         ).stream().findFirst();
+    }
+
+    /** Lista reservas para administración, aplicando los filtros indicados. */
+    public List<ReservaDatos> listarParaAdmin(
+            LocalDate fecha, Integer pistaId, Integer socioId
+    ) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT r.id,
+                   r.socio_id,
+                   s.nombre || ' ' || s.apellidos AS socio_nombre,
+                   r.pista_id,
+                   p.nombre AS pista_nombre,
+                   r.fecha,
+                   r.hora_inicio,
+                   r.duracion,
+                   r.estado,
+                   r.creada_en,
+                   r.cancelada_en,
+                   c.rol AS cancelada_por,
+                   r.motivo_cancelacion
+            FROM reserva r
+            JOIN socio s ON s.id = r.socio_id
+            JOIN pista p ON p.id = r.pista_id
+            LEFT JOIN cuenta c ON c.id = r.cancelada_por_cuenta_id
+            WHERE 1 = 1
+            """);
+
+        List<Object> parametros = new ArrayList<>();
+
+        if (fecha != null) {
+            sql.append(" AND r.fecha = ?");
+            parametros.add(fecha);
+        }
+        if (pistaId != null) {
+            sql.append(" AND r.pista_id = ?");
+            parametros.add(pistaId);
+        }
+        if (socioId != null) {
+            sql.append(" AND r.socio_id = ?");
+            parametros.add(socioId);
+        }
+
+        sql.append(" ORDER BY r.fecha DESC, r.hora_inicio DESC, r.id DESC");
+
+        return jdbcTemplate.query(
+                sql.toString(),
+                this::mapearReserva,
+                parametros.toArray()
+        );
+    }
+
+    /** Lista las reservas de un socio, incluidas las canceladas. */
+    public List<ReservaDatos> listarPorSocio(int socioId) {
+        return jdbcTemplate.query(
+                """
+                SELECT r.id,
+                    r.socio_id,
+                    s.nombre || ' ' || s.apellidos AS socio_nombre,
+                    r.pista_id,
+                    p.nombre AS pista_nombre,
+                    r.fecha,
+                    r.hora_inicio,
+                    r.duracion,
+                    r.estado,
+                    r.creada_en,
+                    r.cancelada_en,
+                    c.rol AS cancelada_por,
+                    r.motivo_cancelacion
+                FROM reserva r
+                JOIN socio s ON s.id = r.socio_id
+                JOIN pista p ON p.id = r.pista_id
+                LEFT JOIN cuenta c ON c.id = r.cancelada_por_cuenta_id
+                WHERE r.socio_id = ?
+                ORDER BY r.fecha DESC, r.hora_inicio DESC, r.id DESC
+                """,
+                this::mapearReserva,
+                socioId
+        );
+    }
+
+    /** Convierte una fila de la consulta en los datos de una reserva. */
+    private ReservaDatos mapearReserva(ResultSet rs, int fila) throws SQLException {
+        return new ReservaDatos(
+                rs.getInt("id"),
+                rs.getInt("socio_id"),
+                rs.getString("socio_nombre"),
+                rs.getInt("pista_id"),
+                rs.getString("pista_nombre"),
+                rs.getObject("fecha", LocalDate.class),
+                rs.getObject("hora_inicio", LocalTime.class),
+                rs.getInt("duracion"),
+                rs.getString("estado"),
+                rs.getObject("creada_en", OffsetDateTime.class),
+                rs.getObject("cancelada_en", OffsetDateTime.class),
+                rs.getString("cancelada_por"),
+                rs.getString("motivo_cancelacion")
+        );
     }
 
     /** Datos leídos de la base de datos para preparar una respuesta de reserva. */

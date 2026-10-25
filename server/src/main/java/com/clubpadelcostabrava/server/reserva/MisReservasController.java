@@ -7,10 +7,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.NoSuchElementException;
 
@@ -64,5 +61,22 @@ public class MisReservasController {
                             "Alguna hora de la pista ya está ocupada."
                     ));
         }
+    }
+
+    /** Lista únicamente las reservas del socio asociado a la sesión. */
+    @GetMapping
+    public ResponseEntity<?> listar(Authentication authentication) {
+        int cuentaId = (Integer) authentication.getPrincipal();
+        Integer socioId = cuentas.socioIdPorCuenta(cuentaId).orElse(null);
+
+        if (socioId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorApi(
+                            "SESION_INVALIDA",
+                            "Debes iniciar sesión de nuevo."
+                    ));
+        }
+
+        return ResponseEntity.ok(servicio.listarPorSocio(socioId));
     }
 }

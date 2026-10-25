@@ -8,11 +8,10 @@ import com.clubpadelcostabrava.server.socio.SocioRespuesta;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -125,6 +124,74 @@ public class ReservaService {
                 .orElseThrow(() -> new IllegalStateException("No se encontró la reserva recién creada."));
 
         return prepararRespuesta(guardada, true);
+    }
+
+    /** Indica si el socio aún puede cancelar esta reserva. */
+    private boolean puedeCancelarSocio(ReservaRepository.ReservaDatos reserva, ZonedDateTime ahora) {
+
+        if (!"CONFIRMADA".equals(reserva.estado())) {
+            return false;
+        }
+
+        ZonedDateTime inicio = ZonedDateTime.of(reserva.fecha(), reserva.horaInicio(), ZoneId.of("Europe/Madrid"));
+
+        if (!inicio.isAfter(ahora)) {
+            return false;
+        }
+
+        if (reserva.fecha().isAfter(ahora.toLocalDate())) {
+            return true;
+        }
+
+        return !ahora.toInstant().isAfter(reserva.creadaEn().toInstant().plus(Duration.ofMinutes(10)));
+    }
+
+    /** Indica si administración puede cancelar una reserva futura o en curso. */
+    private boolean puedeCancelarAdmin(
+            ReservaRepository.ReservaDatos reserva,
+            ZonedDateTime ahora
+    ) {
+        if (!"CONFIRMADA".equals(reserva.estado())) {
+            return false;
+        }
+
+        ZonedDateTime inicio = ZonedDateTime.of(
+                reserva.fecha(),
+                reserva.horaInicio(),
+                ZoneId.of("Europe/Madrid")
+        );
+        ZonedDateTime fin = inicio.plusHours(reserva.duracionHoras());
+
+        return fin.isAfter(ahora);
+    }
+
+    /** Devuelve las reservas del socio con el permiso de cancelación actualizado. */
+    public List<ReservaRespuesta> listarPorSocio(int socioId) {
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
+        List<ReservaRespuesta> respuesta = new ArrayList<>();
+
+        for (ReservaRepository.ReservaDatos reserva : reservas.listarPorSocio(socioId)) {
+            boolean puedeCancelar = puedeCancelarSocio(reserva, ahora);
+            respuesta.add(prepararRespuesta(reserva, puedeCancelar));
+        }
+
+        return List.copyOf(respuesta);
+    }
+
+    /** Devuelve las reservas filtradas con el permiso de cancelación de ADMIN. */
+    public List<ReservaRespuesta> listarParaAdmin(
+            LocalDate fecha, Integer pistaId, Integer socioId
+    ) {
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
+        List<ReservaRespuesta> respuesta = new ArrayList<>();
+
+        for (ReservaRepository.ReservaDatos reserva :
+                reservas.listarParaAdmin(fecha, pistaId, socioId)) {
+            boolean puedeCancelar = puedeCancelarAdmin(reserva, ahora);
+            respuesta.add(prepararRespuesta(reserva, puedeCancelar));
+        }
+
+        return List.copyOf(respuesta);
     }
 
     /** Convierte los datos almacenados al formato que reciben los clientes. */
