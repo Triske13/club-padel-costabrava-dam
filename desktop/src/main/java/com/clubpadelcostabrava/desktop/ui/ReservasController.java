@@ -9,11 +9,12 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import javafx.scene.control.Alert;
+import com.clubpadelcostabrava.desktop.data.Reserva;
 
 /** Controla la consulta y creación de reservas desde recepción. */
 public class ReservasController {
 
-    @FXML private ListView<String> reservasList;
+    @FXML private ListView<Reserva> reservasList;
     @FXML private Label mensajeLabel;
     @FXML private TextField socioIdField;
     @FXML private TextField pistaIdField;
@@ -21,6 +22,8 @@ public class ReservasController {
     @FXML private TextField horaInicioField;
     @FXML private ComboBox<Integer> duracionBox;
     @FXML private Button crearButton;
+    @FXML private TextField motivoCancelacionField;
+    @FXML private Button cancelarButton;
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
 
@@ -34,6 +37,32 @@ public class ReservasController {
     private void initialize() {
         duracionBox.getItems().setAll(1, 2);
         duracionBox.setValue(1);
+        reservasList.setCellFactory(lista -> new ListCell<>() {
+            @Override
+            protected void updateItem(Reserva reserva, boolean vacia) {
+                super.updateItem(reserva, vacia);
+
+                setText(vacia || reserva == null ? null
+                        : "#%d · %s · %s · %s %s (%d h) · %s".formatted(
+                        reserva.id(),
+                        reserva.socioNombre(),
+                        reserva.pistaNombre(),
+                        reserva.fecha(),
+                        reserva.horaInicio(),
+                        reserva.duracionHoras(),
+                        reserva.estado()
+                ));
+            }
+        });
+
+        cancelarButton.setDisable(true);
+
+        reservasList.getSelectionModel().selectedItemProperty().addListener(
+                (observable, anterior, actual) ->
+                        cancelarButton.setDisable(
+                                actual == null || !actual.puedeCancelar()
+                        )
+        );
     }
 
     @FXML
@@ -113,21 +142,85 @@ public class ReservasController {
                         return;
                     }
 
-                    reservasList.getItems().setAll(
-                            reservas.stream()
-                                    .map(reserva -> "#%d · %s · %s · %s %s (%d h) · %s"
-                                            .formatted(
-                                                    reserva.id(),
-                                                    reserva.socioNombre(),
-                                                    reserva.pistaNombre(),
-                                                    reserva.fecha(),
-                                                    reserva.horaInicio(),
-                                                    reserva.duracionHoras(),
-                                                    reserva.estado()
-                                            ))
-                                    .toList()
-                    );
+                    reservasList.getItems().setAll(reservas);
                     mensajeLabel.setText("Reservas: " + reservas.size());
+                })
+        );
+    }
+
+    @FXML
+    private void onCancelar() {
+        Reserva seleccionada =
+                reservasList.getSelectionModel().getSelectedItem();
+
+        if (seleccionada == null || !seleccionada.puedeCancelar()) {
+            mensajeLabel.setText("Selecciona una reserva cancelable.");
+            return;
+        }
+
+        String motivo = motivoCancelacionField.getText().strip();
+
+        if (motivo.isBlank()) {
+            mensajeLabel.setText("Indica el motivo de la cancelación.");
+            return;
+        }
+        if (motivo.codePointCount(0, motivo.length()) > 200) {
+            mensajeLabel.setText("El motivo no puede superar los 200 caracteres.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "¿Cancelar completamente la reserva #"
+                        + seleccionada.id() + "?",
+                ButtonType.OK,
+                ButtonType.CANCEL
+        );
+        confirmacion.setTitle("Confirmar cancelación");
+        confirmacion.setHeaderText(null);
+
+        if (confirmacion.showAndWait().orElse(ButtonType.CANCEL)
+                != ButtonType.OK) {
+            return;
+        }
+
+        cancelarButton.setDisable(true);
+        mensajeLabel.setText("Cancelando reserva...");
+
+        api.cancelarReservaAdmin(
+                sesion.token(), seleccionada.id(), motivo
+        ).whenComplete((resultado, fallo) ->
+                Platform.runLater(() -> {
+                    if (fallo != null) {
+                        Throwable causa = fallo.getCause() != null
+                                ? fallo.getCause() : fallo;
+                        mensajeLabel.setText(
+                                causa.getMessage() != null
+                                        ? causa.getMessage()
+                                        : "No se pudo cancelar la reserva."
+                        );
+                        cancelarButton.setDisable(false);
+                        return;
+                    }
+
+                    motivoCancelacionField.clear();
+                    reservasList.getSelectionModel().clearSelection();
+                    cancelarButton.setDisable(true);
+                    cargarReservas();
+
+                    if ("FALLIDO".equals(resultado.avisoCorreo())) {
+                        new Alert(
+                                Alert.AlertType.WARNING,
+                                "La reserva #" + resultado.reserva().id()
+                                        + " quedó cancelada, pero no se pudo enviar el correo."
+                        ).show();
+                    } else {
+                        new Alert(
+                                Alert.AlertType.INFORMATION,
+                                "Reserva #" + resultado.reserva().id()
+                                        + " cancelada. El servidor de correo aceptó el aviso."
+                        ).show();
+                    }
                 })
         );
     }

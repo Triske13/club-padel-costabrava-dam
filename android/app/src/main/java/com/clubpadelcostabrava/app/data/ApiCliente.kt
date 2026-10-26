@@ -221,4 +221,21 @@ class ApiCliente {
                 conexion.disconnect()
             }
         }
+
+    /** Cancela una reserva propia y devuelve su estado actualizado. */
+    suspend fun cancelarMiReserva(token: String, reservaId: Int): Reserva =
+        withContext(Dispatchers.IO) {
+            val conexion = abrirConexion(
+                "/api/mis-reservas/$reservaId/cancelacion",
+                "POST",
+                token
+            )
+
+            try {
+                val texto = leerRespuesta(conexion, HttpURLConnection.HTTP_OK)
+                parsearReserva(JSONObject(texto))
+            } finally {
+                conexion.disconnect()
+            }
+        }
 }

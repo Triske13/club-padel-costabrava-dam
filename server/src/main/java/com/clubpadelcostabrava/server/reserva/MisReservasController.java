@@ -79,4 +79,36 @@ public class MisReservasController {
 
         return ResponseEntity.ok(servicio.listarPorSocio(socioId));
     }
+
+    /** Cancela una reserva del socio identificado por la sesión. */
+    @PostMapping("/{id}/cancelacion")
+    public ResponseEntity<?> cancelar(
+            @PathVariable int id,
+            Authentication authentication
+    ) {
+        int cuentaId = (Integer) authentication.getPrincipal();
+        Integer socioId = cuentas.socioIdPorCuenta(cuentaId).orElse(null);
+
+        if (socioId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorApi(
+                            "SESION_INVALIDA",
+                            "Debes iniciar sesión de nuevo."
+                    ));
+        }
+
+        try {
+            ReservaRespuesta cancelada =
+                    servicio.cancelarPropia(id, socioId, cuentaId);
+            return ResponseEntity.ok(cancelada);
+
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorApi("NO_ENCONTRADO", e.getMessage()));
+
+        } catch (ConflictoApiException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorApi(e.codigo(), e.getMessage()));
+        }
+    }
 }

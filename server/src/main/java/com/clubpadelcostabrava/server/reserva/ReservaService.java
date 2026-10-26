@@ -127,7 +127,7 @@ public class ReservaService {
     }
 
     /** Indica si el socio aún puede cancelar esta reserva. */
-    private boolean puedeCancelarSocio(ReservaRepository.ReservaDatos reserva, ZonedDateTime ahora) {
+    boolean puedeCancelarSocio(ReservaRepository.ReservaDatos reserva, ZonedDateTime ahora) {
 
         if (!"CONFIRMADA".equals(reserva.estado())) {
             return false;
@@ -147,7 +147,7 @@ public class ReservaService {
     }
 
     /** Indica si administración puede cancelar una reserva futura o en curso. */
-    private boolean puedeCancelarAdmin(
+    boolean puedeCancelarAdmin(
             ReservaRepository.ReservaDatos reserva,
             ZonedDateTime ahora
     ) {
@@ -163,6 +163,125 @@ public class ReservaService {
         ZonedDateTime fin = inicio.plusHours(reserva.duracionHoras());
 
         return fin.isAfter(ahora);
+    }
+
+    /** Cancela una reserva propia y libera todas sus horas en una transacción. */
+    @Transactional
+    public ReservaRespuesta cancelarPropia(
+            int reservaId, int socioId, int cuentaId
+    ) {
+        ReservaRepository.ReservaDatos reserva =
+                reservas.buscarPorIdParaCancelar(reservaId)
+                        .orElseThrow(() ->
+                                new NoSuchElementException("Reserva no encontrada."));
+
+        if (reserva.socioId() != socioId) {
+            throw new NoSuchElementException("Reserva no encontrada.");
+        }
+
+        if (!"CONFIRMADA".equals(reserva.estado())) {
+            throw new ConflictoApiException(
+                    "RESERVA_YA_CANCELADA",
+                    "La reserva ya está cancelada."
+            );
+        }
+
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
+
+        if (!puedeCancelarSocio(reserva, ahora)) {
+            throw new ConflictoApiException(
+                    "PLAZO_CANCELACION",
+                    "Ya no puedes cancelar esta reserva."
+            );
+        }
+
+        return guardarCancelacion(reserva, cuentaId, null);
+    }
+
+    /** Guarda una cancelación ya autorizada y libera todas sus horas. */
+    private ReservaRespuesta guardarCancelacion(
+            ReservaRepository.ReservaDatos reserva,
+            int cuentaId,
+            String motivo
+    ) {
+        int reservaId = reserva.id();
+
+        int filasActualizadas =
+                reservas.marcarCancelada(reservaId, cuentaId, motivo);
+        if (filasActualizadas != 1) {
+            throw new IllegalStateException("No se pudo actualizar la reserva.");
+        }
+
+        int horasLiberadas = reservas.eliminarOcupaciones(reservaId);
+        if (horasLiberadas != reserva.duracionHoras()) {
+            throw new IllegalStateException(
+                    "No se liberaron todas las horas de la reserva."
+            );
+        }
+
+        ReservaRepository.ReservaDatos cancelada =
+                reservas.buscarPorId(reservaId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "No se encontró la reserva cancelada."
+                                ));
+
+        return prepararRespuesta(cancelada, false);
+    }
+
+    /** Exige un motivo visible para el socio y compatible con la base de datos. */
+    private String validarMotivoAdmin(String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("El motivo es obligatorio.");
+        }
+
+        String limpio = motivo.strip();
+
+        if (limpio.codePointCount(0, limpio.length()) > 200) {
+            throw new IllegalArgumentException(
+                    "El motivo no puede superar los 200 caracteres."
+            );
+        }
+
+        return limpio;
+    }
+
+    /** Comprueba si ADMIN puede cancelar una reserva futura o en curso. */
+    @Transactional
+    public ResultadoCancelacionAdmin cancelarAdmin(int reservaId, int adminCuentaId, String motivo) {
+
+        String motivoLimpio = validarMotivoAdmin(motivo);
+
+        ReservaRepository.ReservaDatos reserva =
+                reservas.buscarPorIdParaCancelar(reservaId)
+                        .orElseThrow(() ->
+                                new NoSuchElementException("Reserva no encontrada."));
+
+        if (!"CONFIRMADA".equals(reserva.estado())) {
+            throw new ConflictoApiException(
+                    "RESERVA_YA_CANCELADA",
+                    "La reserva ya está cancelada."
+            );
+        }
+
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
+
+        if (!puedeCancelarAdmin(reserva, ahora)) {
+            throw new ConflictoApiException(
+                    "RESERVA_TERMINADA",
+                    "No se puede cancelar una reserva terminada."
+            );
+        }
+
+        String correo = socios.buscarPorId(reserva.socioId())
+                .orElseThrow(() ->
+                        new IllegalStateException("No se encontró el correo del socio."))
+                .correo();
+
+        ReservaRespuesta cancelada =
+                guardarCancelacion(reserva, adminCuentaId, motivoLimpio);
+
+        return new ResultadoCancelacionAdmin(cancelada, correo);
     }
 
     /** Devuelve las reservas del socio con el permiso de cancelación actualizado. */
@@ -216,4 +335,7 @@ public class ReservaService {
                 puedeCancelar
         );
     }
+
+    /** Datos necesarios para enviar el aviso después de guardar la cancelación. */
+    public record ResultadoCancelacionAdmin(ReservaRespuesta reserva, String correo) {}
 }

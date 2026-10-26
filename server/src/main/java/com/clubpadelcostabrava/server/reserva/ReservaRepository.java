@@ -216,6 +216,35 @@ public class ReservaRepository {
         ).stream().findFirst();
     }
 
+    /** Lee y bloquea una reserva mientras se decide su cancelación. */
+    public Optional<ReservaDatos> buscarPorIdParaCancelar(int reservaId) {
+        return jdbcTemplate.query(
+                """
+                SELECT r.id,
+                       r.socio_id,
+                       s.nombre || ' ' || s.apellidos AS socio_nombre,
+                       r.pista_id,
+                       p.nombre AS pista_nombre,
+                       r.fecha,
+                       r.hora_inicio,
+                       r.duracion,
+                       r.estado,
+                       r.creada_en,
+                       r.cancelada_en,
+                       c.rol AS cancelada_por,
+                       r.motivo_cancelacion
+                FROM reserva r
+                JOIN socio s ON s.id = r.socio_id
+                JOIN pista p ON p.id = r.pista_id
+                LEFT JOIN cuenta c ON c.id = r.cancelada_por_cuenta_id
+                WHERE r.id = ?
+                FOR UPDATE OF r
+                """,
+                this::mapearReserva,
+                reservaId
+        ).stream().findFirst();
+    }
+
     /** Lista reservas para administración, aplicando los filtros indicados. */
     public List<ReservaDatos> listarParaAdmin(
             LocalDate fecha, Integer pistaId, Integer socioId
@@ -310,6 +339,32 @@ public class ReservaRepository {
                 rs.getObject("cancelada_en", OffsetDateTime.class),
                 rs.getString("cancelada_por"),
                 rs.getString("motivo_cancelacion")
+        );
+    }
+
+    /** Marca una reserva como cancelada y registra quién y cuándo actuó. */
+    public int marcarCancelada(int reservaId, int cuentaId, String motivo) {
+        return jdbcTemplate.update(
+                """
+                UPDATE reserva
+                SET estado = 'CANCELADA',
+                    cancelada_en = CURRENT_TIMESTAMP,
+                    cancelada_por_cuenta_id = ?,
+                    motivo_cancelacion = ?
+                WHERE id = ?
+                  AND estado = 'CONFIRMADA'
+                """,
+                cuentaId,
+                motivo,
+                reservaId
+        );
+    }
+
+    /** Libera todas las horas ocupadas por una reserva cancelada. */
+    public int eliminarOcupaciones(int reservaId) {
+        return jdbcTemplate.update(
+                "DELETE FROM ocupacion WHERE reserva_id = ?",
+                reservaId
         );
     }
 

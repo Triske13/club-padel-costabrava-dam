@@ -21,4 +21,13 @@
     <Button text="Recargar" onAction="#onRecargar"/>
     <Label fx:id="mensajeLabel"/>
     <ListView fx:id="reservasList"/>
+    <Label text="Cancelar la reserva seleccionada"/>
+    <HBox spacing="8">
+        <TextField fx:id="motivoCancelacionField"
+                   promptText="Motivo obligatorio"
+                   prefWidth="450"/>
+        <Button fx:id="cancelarButton"
+                text="Cancelar reserva"
+                onAction="#onCancelar"/>
+    </HBox>
 </VBox>

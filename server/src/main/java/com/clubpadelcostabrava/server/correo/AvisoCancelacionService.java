@@ -1,6 +1,7 @@
 package com.clubpadelcostabrava.server.correo;
 
 import com.clubpadelcostabrava.server.reserva.ReservaRepository.ReservaCancelada;
+import com.clubpadelcostabrava.server.reserva.ReservaRespuesta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,6 +61,34 @@ public class AvisoCancelacionService {
             return true;
         } catch (MailException e) {
             log.warn("No se pudo enviar el aviso de cancelación por inactivación.", e);
+            return false;
+        }
+    }
+
+    /** Intenta avisar al socio de una cancelación hecha por ADMIN. */
+    public boolean avisarCancelacionAdmin(
+            String destinatario,
+            ReservaRespuesta reserva
+    ) {
+        SimpleMailMessage mensaje = new SimpleMailMessage();
+        mensaje.setFrom(remitente);
+        mensaje.setTo(destinatario);
+        mensaje.setSubject("Cancelación de reserva - Club Pádel Costa Brava");
+        mensaje.setText(
+                "Su reserva ha sido cancelada por administración.\n\n"
+                        + "Pista: " + reserva.pistaNombre() + "\n"
+                        + "Fecha: " + reserva.fecha() + "\n"
+                        + "Horario: " + reserva.horaInicio()
+                        + " a " + reserva.horaFin() + "\n"
+                        + "Motivo: " + reserva.motivoCancelacion() + "\n\n"
+                        + "Para más información, contacte con el club."
+        );
+
+        try {
+            mailSender.send(mensaje);
+            return true;
+        } catch (MailException e) {
+            log.warn("No se pudo enviar el aviso de cancelación administrativa.", e);
             return false;
         }
     }

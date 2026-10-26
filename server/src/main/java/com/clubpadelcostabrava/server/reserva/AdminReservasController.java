@@ -2,6 +2,7 @@ package com.clubpadelcostabrava.server.reserva;
 
 import com.clubpadelcostabrava.server.api.ConflictoApiException;
 import com.clubpadelcostabrava.server.api.ErrorApi;
+import com.clubpadelcostabrava.server.correo.AvisoCancelacionService;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,11 @@ import java.util.NoSuchElementException;
 public class AdminReservasController {
 
     private final ReservaService servicio;
+    private final AvisoCancelacionService avisos;
 
-    public AdminReservasController(ReservaService servicio) {
+    public AdminReservasController(ReservaService servicio, AvisoCancelacionService avisos) {
         this.servicio = servicio;
+        this.avisos = avisos;
     }
 
     @PostMapping
@@ -91,5 +94,46 @@ public class AdminReservasController {
         }
 
         return ResponseEntity.ok(servicio.listarParaAdmin(fecha, pistaId, socioId));
+    }
+
+    /** Cancela una reserva y, una vez guardada, intenta avisar al socio. */
+    @PostMapping("/{id}/cancelacion")
+    public ResponseEntity<?> cancelar(
+            @PathVariable int id,
+            @RequestBody(required = false) CancelarReservaAdminPeticion datos,
+            Authentication authentication
+    ) {
+        int adminCuentaId = (Integer) authentication.getPrincipal();
+
+        try {
+            ReservaService.ResultadoCancelacionAdmin resultado =
+                    servicio.cancelarAdmin(
+                            id,
+                            adminCuentaId,
+                            datos == null ? null : datos.motivo()
+                    );
+
+            boolean correoAceptado = avisos.avisarCancelacionAdmin(
+                    resultado.correo(),
+                    resultado.reserva()
+            );
+
+            return ResponseEntity.ok(new CancelarReservaAdminRespuesta(
+                    resultado.reserva(),
+                    correoAceptado ? "ACEPTADO" : "FALLIDO"
+            ));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorApi("DATOS_INVALIDOS", e.getMessage()));
+
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorApi("NO_ENCONTRADO", e.getMessage()));
+
+        } catch (ConflictoApiException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorApi(e.codigo(), e.getMessage()));
+        }
     }
 }

@@ -120,6 +120,37 @@ public final class ApiCliente {
         });
     }
 
+    /** Cancela una reserva desde ADMIN y lee el resultado del correo. */
+    public CompletableFuture<ResultadoCancelacion> cancelarReservaAdmin(
+            String token, int reservaId, String motivo
+    ) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("motivo", motivo);
+
+        HttpRequest peticion = prepararPeticion(
+                "/api/admin/reservas/" + reservaId + "/cancelacion",
+                token
+        )
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            JsonObject json = JsonParser.parseString(texto).getAsJsonObject();
+
+            return new ResultadoCancelacion(
+                    parsearReserva(json.getAsJsonObject("reserva")),
+                    json.get("avisoCorreo").getAsString()
+            );
+        });
+    }
+
     /** Devuelve el cuerpo esperado o lanza el mensaje de error del servidor. */
     private String leerRespuesta(HttpResponse<String> respuesta, int estadoEsperado) {
         int estado = respuesta.statusCode();

@@ -1,39 +1,41 @@
 package com.clubpadelcostabrava.app.ui.reservas
 
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.clubpadelcostabrava.app.data.ApiCliente
-import com.clubpadelcostabrava.app.data.DisponibilidadDia
-import com.clubpadelcostabrava.app.data.Sesion
-import java.time.LocalDate
-import java.time.ZoneId
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.rememberCoroutineScope
-import java.io.IOException
-import java.time.format.DateTimeParseException
+import com.clubpadelcostabrava.app.data.ApiCliente
+import com.clubpadelcostabrava.app.data.DisponibilidadDia
+import com.clubpadelcostabrava.app.data.Reserva
+import com.clubpadelcostabrava.app.data.Sesion
 import kotlinx.coroutines.launch
 import org.json.JSONException
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.FilterChip
-import com.clubpadelcostabrava.app.data.Reserva
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.Card
+import java.io.IOException
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeParseException
 
 @Composable
 fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
@@ -52,6 +54,9 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
     var misReservas by remember { mutableStateOf<List<Reserva>>(emptyList()) }
     var cargandoReservas by remember { mutableStateOf(false) }
     var reservasConsultadas by remember { mutableStateOf(false) }
+    var cancelandoId by remember { mutableStateOf<Int?>(null) }
+    var reservaPendiente by remember { mutableStateOf<Reserva?>(null) }
+    var avisoCancelacion by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -100,13 +105,17 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                     }
                 }
             },
-            enabled = !cargando && !reservando && fechaTexto.isNotBlank()
+            enabled = !cargando && !reservando && cancelandoId == null && fechaTexto.isNotBlank()
         ) {
             Text(if (cargando) "Consultando..." else "Ver disponibilidad")
         }
 
         error?.let { mensaje ->
             Text(mensaje, color = MaterialTheme.colorScheme.error)
+        }
+
+        avisoCancelacion?.let { mensaje ->
+            Text(mensaje, color = MaterialTheme.colorScheme.primary)
         }
 
         reservaCreada?.let { reserva ->
@@ -135,7 +144,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                     }
                 }
             },
-            enabled = !cargandoReservas && !reservando
+            enabled = !cargandoReservas && !reservando && cancelandoId == null
         ) {
             Text(if (cargandoReservas) "Cargando..." else "Mis reservas")
         }
@@ -159,15 +168,95 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                             "${reserva.horaInicio}–${reserva.horaFin} " +
                                     "(${reserva.duracionHoras} h)"
                         )
+
+                        if (reserva.estado == "CANCELADA") {
+                            reserva.canceladaPor?.let { autor ->
+                                Text("Cancelada por: $autor")
+                            }
+                            reserva.motivoCancelacion?.let { motivo ->
+                                Text("Motivo: $motivo")
+                            }
+                        }
+
+                        if (reserva.puedeCancelar) {
+                            Button(
+                                onClick = { reservaPendiente = reserva },
+                                enabled = cancelandoId == null
+                            ) {
+                                Text("Cancelar reserva")
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        reservaPendiente?.let { pendiente ->
+            AlertDialog(
+                onDismissRequest = { reservaPendiente = null },
+                title = { Text("Cancelar reserva") },
+                text = {
+                    Text(
+                        "¿Cancelar completamente la reserva ${pendiente.id} " +
+                                "de ${pendiente.fecha}, " +
+                                "${pendiente.horaInicio}–${pendiente.horaFin}?"
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        reservaPendiente = null
+                        cancelandoId = pendiente.id
+                        error = null
+                        avisoCancelacion = null
+
+                        scope.launch {
+                            try {
+                                val cancelada = api.cancelarMiReserva(
+                                    sesion.token,
+                                    pendiente.id
+                                )
+                                misReservas = misReservas.map { actual ->
+                                    if (actual.id == cancelada.id) cancelada else actual
+                                }
+                                avisoCancelacion =
+                                    "Reserva ${cancelada.id} cancelada."
+                                if (reservaCreada?.id == cancelada.id) {
+                                    reservaCreada = null
+                                }
+                                dia = null
+                                pistaSeleccionadaId = null
+                            } catch (e: IOException) {
+                                error = e.message ?: "No se pudo cancelar la reserva."
+                            } catch (e: JSONException) {
+                                error = "La respuesta del servidor no es válida."
+                            } finally {
+                                cancelandoId = null
+                            }
+                        }
+                    }) {
+                        Text("Sí, cancelar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { reservaPendiente = null }) {
+                        Text("Volver")
+                    }
+                }
+            )
         }
 
         dia?.let { disponibilidad ->
             Text(
                 "Horario: ${disponibilidad.horaApertura}–${disponibilidad.horaCierre}"
             )
+            if (disponibilidad.fecha ==
+                LocalDate.now(ZoneId.of("Europe/Madrid")).toString()
+            ) {
+                Text(
+                    "Si reservas para hoy, podrás cancelarla durante los " +
+                            "10 minutos posteriores a su creación y siempre antes del inicio."
+                )
+            }
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -236,7 +325,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                                     }
                                 }
                             },
-                            enabled = !cargando && !reservando
+                            enabled = !cargando && !reservando && cancelandoId == null
                         ) {
                             Text("$duracion h")
                         }
