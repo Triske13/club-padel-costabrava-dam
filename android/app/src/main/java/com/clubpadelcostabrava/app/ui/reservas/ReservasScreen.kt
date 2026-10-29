@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.clubpadelcostabrava.app.data.ApiCliente
+import com.clubpadelcostabrava.app.data.ApiException
 import com.clubpadelcostabrava.app.data.DisponibilidadDia
 import com.clubpadelcostabrava.app.data.Reserva
 import com.clubpadelcostabrava.app.data.Sesion
@@ -38,7 +39,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeParseException
 
 @Composable
-fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
+fun ReservasScreen(sesion: Sesion, api: ApiCliente, onAbrirCuenta: () -> Unit, onSesionInvalida: () -> Unit) {
     var fechaTexto by remember {
         mutableStateOf(
             LocalDate.now(ZoneId.of("Europe/Madrid")).plusDays(1).toString()
@@ -58,6 +59,14 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
     var reservaPendiente by remember { mutableStateOf<Reserva?>(null) }
     var avisoCancelacion by remember { mutableStateOf<String?>(null) }
 
+    fun mostrarError(e: IOException, mensajePorDefecto: String) {
+        if (e is ApiException && e.estado == 401) {
+            onSesionInvalida()
+        } else {
+            error = e.message ?: mensajePorDefecto
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -66,6 +75,10 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Reservar pista", style = MaterialTheme.typography.headlineSmall)
+
+        TextButton(onClick = onAbrirCuenta) {
+            Text("Mi cuenta")
+        }
 
         OutlinedTextField(
             value = fechaTexto,
@@ -97,7 +110,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                     } catch (e: DateTimeParseException) {
                         error = "Escribe la fecha como AAAA-MM-DD."
                     } catch (e: IOException) {
-                        error = e.message ?: "No se pudo consultar la disponibilidad."
+                        mostrarError(e, "No se pudo consultar la disponibilidad.")
                     } catch (e: JSONException) {
                         error = "La respuesta del servidor no es válida."
                     } finally {
@@ -136,7 +149,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                         misReservas = api.listarMisReservas(sesion.token)
                         reservasConsultadas = true
                     } catch (e: IOException) {
-                        error = e.message ?: "No se pudieron cargar las reservas."
+                        mostrarError(e, "No se pudieron cargar las reservas.")
                     } catch (e: JSONException) {
                         error = "La respuesta del servidor no es válida."
                     } finally {
@@ -226,7 +239,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                                 dia = null
                                 pistaSeleccionadaId = null
                             } catch (e: IOException) {
-                                error = e.message ?: "No se pudo cancelar la reserva."
+                                mostrarError(e, "No se pudo cancelar la reserva.")
                             } catch (e: JSONException) {
                                 error = "La respuesta del servidor no es válida."
                             } finally {
@@ -313,7 +326,7 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente) {
                                                 dia = null
                                                 pistaSeleccionadaId = null
                                             } catch (e: IOException) {
-                                                error = e.message ?: "No se pudo crear la reserva."
+                                                mostrarError(e, "No se pudo crear la reserva.")
                                                 dia = null
                                             } catch (e: JSONException) {
                                                 error = "La respuesta del servidor no es válida."

@@ -53,7 +53,7 @@ class ApiCliente {
             } catch (_: Exception) {
                 "Error HTTP $estado"
             }
-            throw IOException(mensaje)
+            throw ApiException(estado, mensaje)
         }
 
         return texto
@@ -89,6 +89,115 @@ class ApiCliente {
                 conexion.disconnect()
             }
         }
+
+    /** Invalida en el servidor el token de la sesión actual. */
+    suspend fun cerrarSesion(token: String) {
+        withContext(Dispatchers.IO) {
+            val conexion = abrirConexion("/api/auth/logout", "POST", token)
+
+            try {
+                leerRespuesta(conexion, HttpURLConnection.HTTP_NO_CONTENT)
+            } finally {
+                conexion.disconnect()
+            }
+        }
+    }
+
+    /** Solicita un código para activar la cuenta o recuperar la contraseña. */
+    suspend fun solicitarCodigo(correo: String) {
+        withContext(Dispatchers.IO) {
+            val conexion = abrirConexion("/api/auth/codigo", "POST")
+
+            try {
+                conexion.doOutput = true
+                conexion.setRequestProperty(
+                    "Content-Type",
+                    "application/json; charset=utf-8"
+                )
+
+                val cuerpo = JSONObject()
+                    .put("correo", correo)
+                    .toString()
+
+                conexion.outputStream.use { salida ->
+                    salida.write(cuerpo.toByteArray(Charsets.UTF_8))
+                }
+
+                leerRespuesta(conexion, HttpURLConnection.HTTP_ACCEPTED)
+            } finally {
+                conexion.disconnect()
+            }
+        }
+    }
+
+    /** Usa el código recibido para establecer o recuperar la contraseña. */
+    suspend fun establecerContrasena(
+        correo: String,
+        codigo: String,
+        nuevaContrasena: String
+    ) {
+        withContext(Dispatchers.IO) {
+            val conexion = abrirConexion("/api/auth/contrasena", "POST")
+
+            try {
+                conexion.doOutput = true
+                conexion.setRequestProperty(
+                    "Content-Type",
+                    "application/json; charset=utf-8"
+                )
+
+                val cuerpo = JSONObject()
+                    .put("correo", correo)
+                    .put("codigo", codigo)
+                    .put("nuevaContrasena", nuevaContrasena)
+                    .toString()
+
+                conexion.outputStream.use { salida ->
+                    salida.write(cuerpo.toByteArray(Charsets.UTF_8))
+                }
+
+                leerRespuesta(conexion, HttpURLConnection.HTTP_NO_CONTENT)
+            } finally {
+                conexion.disconnect()
+            }
+        }
+    }
+
+    /** Cambia la contraseña de la cuenta autenticada. */
+    suspend fun cambiarContrasena(
+        token: String,
+        contrasenaActual: String,
+        nuevaContrasena: String
+    ) {
+        withContext(Dispatchers.IO) {
+            val conexion = abrirConexion(
+                "/api/mi-cuenta/contrasena",
+                "PUT",
+                token
+            )
+
+            try {
+                conexion.doOutput = true
+                conexion.setRequestProperty(
+                    "Content-Type",
+                    "application/json; charset=utf-8"
+                )
+
+                val cuerpo = JSONObject()
+                    .put("contrasenaActual", contrasenaActual)
+                    .put("nuevaContrasena", nuevaContrasena)
+                    .toString()
+
+                conexion.outputStream.use { salida ->
+                    salida.write(cuerpo.toByteArray(Charsets.UTF_8))
+                }
+
+                leerRespuesta(conexion, HttpURLConnection.HTTP_NO_CONTENT)
+            } finally {
+                conexion.disconnect()
+            }
+        }
+    }
 
     /** Convierte el JSON de disponibilidad en objetos de la aplicación. */
     private fun parsearDisponibilidad(json: JSONObject): DisponibilidadDia {

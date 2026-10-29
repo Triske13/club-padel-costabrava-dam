@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,7 +24,9 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     cargando: Boolean,
     error: String?,
-    onEntrar: (String, String) -> Unit
+    mensaje: String?,
+    onEntrar: (String, String) -> Unit,
+    onAbrirCodigo: () -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
@@ -34,6 +37,10 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Acceso de socio", style = MaterialTheme.typography.headlineSmall)
+
+        if (!mensaje.isNullOrBlank()) {
+            Text(mensaje, color = MaterialTheme.colorScheme.primary)
+        }
 
         OutlinedTextField(
             value = correo,
@@ -62,6 +69,10 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (cargando) "Entrando..." else "Entrar")
+        }
+
+        TextButton(onClick = onAbrirCodigo, enabled = !cargando) {
+            Text("Activar cuenta o recuperar contraseña")
         }
     }
 }
