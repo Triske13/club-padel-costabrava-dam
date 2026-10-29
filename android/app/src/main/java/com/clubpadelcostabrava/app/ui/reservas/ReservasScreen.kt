@@ -37,13 +37,19 @@ import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeParseException
+import androidx.compose.foundation.clickable
 
 @Composable
-fun ReservasScreen(sesion: Sesion, api: ApiCliente, onAbrirCuenta: () -> Unit, onSesionInvalida: () -> Unit) {
-    var fechaTexto by remember {
-        mutableStateOf(
-            LocalDate.now(ZoneId.of("Europe/Madrid")).plusDays(1).toString()
-        )
+fun ReservasScreen(
+    sesion: Sesion,
+    api: ApiCliente,
+    onAbrirCuenta: () -> Unit,
+    onVolverCalendario: () -> Unit,
+    onSesionInvalida: () -> Unit,
+    fechaInicial: LocalDate = LocalDate.now(ZoneId.of("Europe/Madrid")).plusDays(1)
+) {
+    var fechaTexto by remember(fechaInicial) {
+        mutableStateOf(fechaInicial.toString())
     }
     var dia by remember { mutableStateOf<DisponibilidadDia?>(null) }
     var cargando by remember { mutableStateOf(false) }
@@ -75,6 +81,9 @@ fun ReservasScreen(sesion: Sesion, api: ApiCliente, onAbrirCuenta: () -> Unit, o
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Reservar pista", style = MaterialTheme.typography.headlineSmall)
+        TextButton(onClick = onVolverCalendario) {
+            Text("Volver al calendario")
+        }
 
         TextButton(onClick = onAbrirCuenta) {
             Text("Mi cuenta")

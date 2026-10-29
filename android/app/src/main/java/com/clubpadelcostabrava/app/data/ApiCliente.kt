@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.time.LocalDate
 import org.json.JSONArray
+import java.time.YearMonth
 
 class ApiCliente {
 
@@ -238,6 +239,27 @@ class ApiCliente {
         )
     }
 
+    /** Convierte la respuesta mensual de la API en objetos del calendario. */
+    private fun parsearCalendario(json: JSONObject): CalendarioMes {
+        val diasJson = json.getJSONArray("dias")
+
+        val dias = List(diasJson.length()) { indice ->
+            val diaJson = diasJson.getJSONObject(indice)
+
+            DiaCalendario(
+                fecha = LocalDate.parse(diaJson.getString("fecha")),
+                consultable = diaJson.getBoolean("consultable"),
+                completo = diaJson.getBoolean("completo"),
+                sinHorasFuturas = diaJson.getBoolean("sinHorasFuturas")
+            )
+        }
+
+        return CalendarioMes(
+            mes = YearMonth.parse(json.getString("mes")),
+            dias = dias
+        )
+    }
+
     /** Convierte el JSON de una reserva en un objeto de la aplicación. */
     private fun parsearReserva(json: JSONObject): Reserva {
         fun textoOpcional(clave: String): String? {
@@ -309,6 +331,25 @@ class ApiCliente {
         try {
             val texto = leerRespuesta(conexion, HttpURLConnection.HTTP_OK)
             parsearDisponibilidad(JSONObject(texto))
+        } finally {
+            conexion.disconnect()
+        }
+    }
+
+    /** Obtiene los indicadores de todos los días de un mes. */
+    suspend fun consultarCalendario(
+        token: String,
+        mes: YearMonth
+    ): CalendarioMes = withContext(Dispatchers.IO) {
+        val conexion = abrirConexion(
+            ruta = "/api/calendario?mes=$mes",
+            metodo = "GET",
+            token = token
+        )
+
+        try {
+            val texto = leerRespuesta(conexion, HttpURLConnection.HTTP_OK)
+            parsearCalendario(JSONObject(texto))
         } finally {
             conexion.disconnect()
         }

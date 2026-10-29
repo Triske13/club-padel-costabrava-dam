@@ -15,16 +15,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.clubpadelcostabrava.app.data.ApiCliente
+import com.clubpadelcostabrava.app.data.ApiException
 import com.clubpadelcostabrava.app.data.Sesion
 import com.clubpadelcostabrava.app.ui.auth.CodigoScreen
 import com.clubpadelcostabrava.app.ui.auth.LoginScreen
+import com.clubpadelcostabrava.app.ui.calendario.CalendarioScreen
 import com.clubpadelcostabrava.app.ui.cuenta.CuentaScreen
 import com.clubpadelcostabrava.app.ui.reservas.ReservasScreen
 import com.clubpadelcostabrava.app.ui.theme.ClubPadelCostaBravaTheme
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import java.io.IOException
-import com.clubpadelcostabrava.app.data.ApiException
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +47,10 @@ class MainActivity : ComponentActivity() {
                 var mensajeAcceso by remember { mutableStateOf<String?>(null) }
                 var mostrandoCodigo by remember { mutableStateOf(false) }
                 var mostrandoCuenta by remember { mutableStateOf(false) }
+                var fechaSeleccionada by remember { mutableStateOf<LocalDate?>(null) }
+                var mesCalendario by remember {
+                    mutableStateOf(YearMonth.now(ZoneId.of("Europe/Madrid")))
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
@@ -123,6 +131,10 @@ class MainActivity : ComponentActivity() {
 
                                                 if (nuevaSesion.rol == "USER") {
                                                     sesion = nuevaSesion
+                                                    fechaSeleccionada = null
+                                                    mesCalendario = YearMonth.now(
+                                                        ZoneId.of("Europe/Madrid")
+                                                    )
                                                 } else {
                                                     error =
                                                         "Esta aplicación solo permite cuentas de socio."
@@ -159,17 +171,20 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     sesion = null
                                                     mostrandoCuenta = false
+                                                    fechaSeleccionada = null
                                                     mensajeAcceso =
                                                         "Contraseña actualizada. Inicia sesión de nuevo."
                                                 } catch (e: IOException) {
                                                     if (e is ApiException && e.estado == 401) {
                                                         sesion = null
                                                         mostrandoCuenta = false
+                                                        fechaSeleccionada = null
                                                         error = null
                                                         mensajeAcceso =
                                                             "Tu sesión ya no es válida. Inicia sesión de nuevo."
                                                     } else {
-                                                        error = e.message ?: "No se pudo cambiar la contraseña."
+                                                        error = e.message
+                                                            ?: "No se pudo cambiar la contraseña."
                                                     }
                                                 } finally {
                                                     cargando = false
@@ -190,6 +205,7 @@ class MainActivity : ComponentActivity() {
                                                 } finally {
                                                     sesion = null
                                                     mostrandoCuenta = false
+                                                    fechaSeleccionada = null
                                                     cargando = false
                                                 }
                                             }
@@ -200,21 +216,54 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 } else {
-                                    ReservasScreen(
-                                        sesion = sesionActual,
-                                        api = api,
-                                        onAbrirCuenta = {
-                                            mostrandoCuenta = true
-                                            error = null
-                                        },
-                                        onSesionInvalida = {
-                                            sesion = null
-                                            mostrandoCuenta = false
-                                            error = null
-                                            mensajeAcceso =
-                                                "Tu sesión ya no es válida. Inicia sesión de nuevo."
-                                        }
-                                    )
+                                    val fecha = fechaSeleccionada
+
+                                    if (fecha == null) {
+                                        CalendarioScreen(
+                                            sesion = sesionActual,
+                                            api = api,
+                                            mesVisible = mesCalendario,
+                                            onCambiarMes = { nuevoMes ->
+                                                mesCalendario = nuevoMes
+                                            },
+                                            onSeleccionarFecha = { fechaElegida ->
+                                                fechaSeleccionada = fechaElegida
+                                            },
+                                            onAbrirCuenta = {
+                                                mostrandoCuenta = true
+                                                error = null
+                                            },
+                                            onSesionInvalida = {
+                                                sesion = null
+                                                mostrandoCuenta = false
+                                                fechaSeleccionada = null
+                                                error = null
+                                                mensajeAcceso =
+                                                    "Tu sesión ya no es válida. Inicia sesión de nuevo."
+                                            }
+                                        )
+                                    } else {
+                                        ReservasScreen(
+                                            sesion = sesionActual,
+                                            api = api,
+                                            fechaInicial = fecha,
+                                            onAbrirCuenta = {
+                                                mostrandoCuenta = true
+                                                error = null
+                                            },
+                                            onVolverCalendario = {
+                                                fechaSeleccionada = null
+                                            },
+                                            onSesionInvalida = {
+                                                sesion = null
+                                                mostrandoCuenta = false
+                                                fechaSeleccionada = null
+                                                error = null
+                                                mensajeAcceso =
+                                                    "Tu sesión ya no es válida. Inicia sesión de nuevo."
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
