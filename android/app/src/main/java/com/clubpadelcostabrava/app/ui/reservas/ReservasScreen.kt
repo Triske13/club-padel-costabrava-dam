@@ -38,6 +38,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeParseException
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun ReservasScreen(
@@ -70,6 +71,28 @@ fun ReservasScreen(
             onSesionInvalida()
         } else {
             error = e.message ?: mensajePorDefecto
+        }
+    }
+
+    LaunchedEffect(fechaInicial, sesion.token) {
+        cargando = true
+        error = null
+        dia = null
+        pistaSeleccionadaId = null
+
+        try {
+            val disponibilidad = api.consultarDisponibilidad(
+                sesion.token,
+                fechaInicial
+            )
+            dia = disponibilidad
+            pistaSeleccionadaId = disponibilidad.pistas.firstOrNull()?.id
+        } catch (e: IOException) {
+            mostrarError(e, "No se pudo consultar la disponibilidad.")
+        } catch (e: JSONException) {
+            error = "La respuesta del servidor no es válida."
+        } finally {
+            cargando = false
         }
     }
 
@@ -295,21 +318,20 @@ fun ReservasScreen(
             val pistaElegida = disponibilidad.pistas
                 .firstOrNull { it.id == pistaSeleccionadaId }
 
-            val franjasLibres = pistaElegida?.franjas
-                ?.filter { it.duracionesDisponibles.isNotEmpty() }
-                .orEmpty()
+            val franjas = pistaElegida?.franjas.orEmpty()
 
-            if (franjasLibres.isEmpty()) {
+            if (franjas.isEmpty()) {
                 Text("No quedan horas reservables en esta pista.")
             }
 
-            franjasLibres.forEach { franja ->
+            franjas.forEach { franja ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(franja.horaInicio)
+                    Text(franja.estado)
 
                     franja.duracionesDisponibles.forEach { duracion ->
                         Button(
@@ -332,8 +354,27 @@ fun ReservasScreen(
                                                 )
                                                 reservaCreada = creada
                                                 reservasConsultadas = false
-                                                dia = null
-                                                pistaSeleccionadaId = null
+
+                                                try {
+                                                    val actualizada = api.consultarDisponibilidad(
+                                                        sesion.token,
+                                                        LocalDate.parse(disponibilidad.fecha)
+                                                    )
+                                                    dia = actualizada
+                                                    pistaSeleccionadaId = pista.id
+                                                } catch (e: IOException) {
+                                                    dia = null
+                                                    if (e is ApiException && e.estado == 401) {
+                                                        onSesionInvalida()
+                                                    } else {
+                                                        error = "Reserva ${creada.id} confirmada, " +
+                                                                "pero no se pudo actualizar la disponibilidad."
+                                                    }
+                                                } catch (e: JSONException) {
+                                                    dia = null
+                                                    error = "Reserva ${creada.id} confirmada, " +
+                                                            "pero no se pudo actualizar la disponibilidad."
+                                                }
                                             } catch (e: IOException) {
                                                 mostrarError(e, "No se pudo crear la reserva.")
                                                 dia = null
