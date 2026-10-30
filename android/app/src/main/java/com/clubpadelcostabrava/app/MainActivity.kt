@@ -21,6 +21,7 @@ import com.clubpadelcostabrava.app.ui.auth.CodigoScreen
 import com.clubpadelcostabrava.app.ui.auth.LoginScreen
 import com.clubpadelcostabrava.app.ui.calendario.CalendarioScreen
 import com.clubpadelcostabrava.app.ui.cuenta.CuentaScreen
+import com.clubpadelcostabrava.app.ui.reservas.MisReservasScreen
 import com.clubpadelcostabrava.app.ui.reservas.ReservasScreen
 import com.clubpadelcostabrava.app.ui.theme.ClubPadelCostaBravaTheme
 import kotlinx.coroutines.launch
@@ -47,6 +48,7 @@ class MainActivity : ComponentActivity() {
                 var mensajeAcceso by remember { mutableStateOf<String?>(null) }
                 var mostrandoCodigo by remember { mutableStateOf(false) }
                 var mostrandoCuenta by remember { mutableStateOf(false) }
+                var mostrandoMisReservas by remember { mutableStateOf(false) }
                 var fechaSeleccionada by remember { mutableStateOf<LocalDate?>(null) }
                 var mesCalendario by remember {
                     mutableStateOf(YearMonth.now(ZoneId.of("Europe/Madrid")))
@@ -215,6 +217,23 @@ class MainActivity : ComponentActivity() {
                                             error = null
                                         }
                                     )
+                                } else if (mostrandoMisReservas) {
+                                    MisReservasScreen(
+                                        sesion = sesionActual,
+                                        api = api,
+                                        onVolver = {
+                                            mostrandoMisReservas = false
+                                        },
+                                        onSesionInvalida = {
+                                            sesion = null
+                                            mostrandoMisReservas = false
+                                            mostrandoCuenta = false
+                                            fechaSeleccionada = null
+                                            error = null
+                                            mensajeAcceso =
+                                                "Tu sesión ya no es válida. Inicia sesión de nuevo."
+                                        }
+                                    )
                                 } else {
                                     val fecha = fechaSeleccionada
 
@@ -233,6 +252,9 @@ class MainActivity : ComponentActivity() {
                                                 mostrandoCuenta = true
                                                 error = null
                                             },
+                                            onAbrirMisReservas = {
+                                                mostrandoMisReservas = true
+                                            },
                                             onSesionInvalida = {
                                                 sesion = null
                                                 mostrandoCuenta = false
@@ -247,10 +269,6 @@ class MainActivity : ComponentActivity() {
                                             sesion = sesionActual,
                                             api = api,
                                             fechaInicial = fecha,
-                                            onAbrirCuenta = {
-                                                mostrandoCuenta = true
-                                                error = null
-                                            },
                                             onVolverCalendario = {
                                                 fechaSeleccionada = null
                                             },

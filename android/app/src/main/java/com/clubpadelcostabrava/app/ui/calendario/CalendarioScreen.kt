@@ -19,9 +19,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +43,8 @@ import com.clubpadelcostabrava.app.data.Sesion
 import org.json.JSONException
 import java.io.IOException
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -55,12 +59,14 @@ fun CalendarioScreen(
     onSeleccionarFecha: (LocalDate) -> Unit,
     onSesionInvalida: () -> Unit,
     mesVisible: YearMonth,
-    onCambiarMes: (YearMonth) -> Unit
+    onCambiarMes: (YearMonth) -> Unit,
+    onAbrirMisReservas: () -> Unit
 ) {
     val hoy = LocalDate.now(ZoneId.of("Europe/Madrid"))
     val primerMes = YearMonth.from(hoy)
     val ultimoMes = YearMonth.from(hoy.plusDays(13))
     val meses = listOf(primerMes, ultimoMes).distinct()
+    var menuAbierto by remember { mutableStateOf(false) }
 
     val pagerState = rememberPagerState(
         initialPage = meses.indexOf(mesVisible).coerceAtLeast(0),
@@ -112,8 +118,16 @@ fun CalendarioScreen(
         errorReservas = null
 
         try {
+            val ahora = LocalDateTime.now(ZoneId.of("Europe/Madrid"))
+
             fechasConReserva = api.listarMisReservas(sesion.token)
-                .filter { it.estado == "CONFIRMADA" }
+                .filter { reserva ->
+                    reserva.estado == "CONFIRMADA" &&
+                            LocalDateTime.of(
+                                LocalDate.parse(reserva.fecha),
+                                LocalTime.parse(reserva.horaInicio)
+                            ).isAfter(ahora)
+                }
                 .map { LocalDate.parse(it.fecha) }
                 .toSet()
         } catch (e: IOException) {
@@ -139,14 +153,36 @@ fun CalendarioScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Box {
+            Button(onClick = { menuAbierto = true }) {
+                Text("Menú ▾")
+            }
+
+            DropdownMenu(
+                expanded = menuAbierto,
+                onDismissRequest = { menuAbierto = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Mi cuenta") },
+                    onClick = {
+                        menuAbierto = false
+                        onAbrirCuenta()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Mis reservas") },
+                    onClick = {
+                        menuAbierto = false
+                        onAbrirMisReservas()
+                    }
+                )
+            }
+        }
+
         Text(
             "Calendario",
             style = MaterialTheme.typography.headlineSmall
         )
-
-        TextButton(onClick = onAbrirCuenta) {
-            Text("Mi cuenta")
-        }
 
         Text(
             text = mesVisible.format(formatoMes),
@@ -214,15 +250,14 @@ fun CalendarioScreen(
                         }
 
                         items(datos.dias) { dia ->
+                            val seleccionable = !dia.fecha.isBefore(hoy) &&
+                                    dia.consultable &&
+                                    !dia.sinHorasFuturas
+
                             val colorFondo = when {
-                                dia.fecha.isBefore(hoy) || !dia.consultable ->
-                                    Color(0xFFE0E0E0)
-                                dia.sinHorasFuturas ->
-                                    Color(0xFFF5B5B5)
-                                dia.completo ->
-                                    Color(0xFFFFD8A8)
-                                else ->
-                                    Color(0xFFBFE8C3)
+                                !seleccionable -> Color(0xFFE0E0E0)
+                                dia.completo -> Color(0xFFFFD8A8)
+                                else -> Color(0xFFBFE8C3)
                             }
 
                             Box(
@@ -231,7 +266,7 @@ fun CalendarioScreen(
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(colorFondo)
-                                    .clickable(enabled = dia.consultable) {
+                                    .clickable(enabled = seleccionable) {
                                         onSeleccionarFecha(dia.fecha)
                                     },
                                 contentAlignment = Alignment.Center
