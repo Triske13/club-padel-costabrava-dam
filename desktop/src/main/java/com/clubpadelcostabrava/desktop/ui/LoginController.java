@@ -58,14 +58,14 @@ public class LoginController {
                     try {
                         FXMLLoader cargador = new FXMLLoader(
                                 LoginController.class.getResource(
-                                        "/com/clubpadelcostabrava/desktop/reservas-view.fxml"
+                                        "/com/clubpadelcostabrava/desktop/principal-view.fxml"
                                 )
                         );
-                        Parent vistaReservas = cargador.load();
+                        Parent vistaPrincipal = cargador.load();
 
-                        ReservasController controlador = cargador.getController();
+                        PrincipalController controlador = cargador.getController();
                         Stage ventana = (Stage) entrarButton.getScene().getWindow();
-                        ventana.getScene().setRoot(vistaReservas);
+                        ventana.getScene().setRoot(vistaPrincipal);
                         ventana.sizeToScene();
 
                         controlador.setSesion(sesion);
@@ -74,5 +74,25 @@ public class LoginController {
                     }
                 })
         );
+    }
+
+    @FXML
+    private void onRecuperar() {
+        try {
+            FXMLLoader cargador = new FXMLLoader(
+                    getClass().getResource(
+                            "/com/clubpadelcostabrava/desktop/codigo-view.fxml"
+                    )
+            );
+            Parent vistaCodigo = cargador.load();
+
+            Stage ventana = (Stage) entrarButton.getScene().getWindow();
+            ventana.getScene().setRoot(vistaCodigo);
+            ventana.sizeToScene();
+        } catch (IOException e) {
+            mensajeLabel.setText(
+                    "No se pudo abrir la recuperación de contraseña."
+            );
+        }
     }
 }

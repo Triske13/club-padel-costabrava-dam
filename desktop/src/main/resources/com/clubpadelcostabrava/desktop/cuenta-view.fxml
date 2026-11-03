@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.clubpadelcostabrava.desktop.ui.CuentaController"
+      spacing="12" style="-fx-padding: 20;">
+    <Label text="Mi cuenta" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    <Label text="Cambiar contraseña"/>
+    <PasswordField fx:id="actualField"
+                   promptText="Contraseña actual"
+                   maxWidth="340"/>
+    <PasswordField fx:id="nuevaField"
+                   promptText="Nueva contraseña"
+                   maxWidth="340"/>
+    <Button fx:id="cambiarButton"
+            text="Guardar contraseña"
+            onAction="#onCambiarContrasena"/>
+    <Label fx:id="mensajeLabel" wrapText="true"/>
+</VBox>

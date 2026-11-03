@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import javafx.scene.control.Alert;
 import com.clubpadelcostabrava.desktop.data.Reserva;
+import com.clubpadelcostabrava.desktop.data.ApiException;
 
 /** Controla la consulta y creación de reservas desde recepción. */
 public class ReservasController {
@@ -26,10 +27,12 @@ public class ReservasController {
     @FXML private Button cancelarButton;
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
+    private Runnable onSesionInvalida;
 
     /** Recibe la sesión ADMIN al abrir esta pantalla. */
-    public void setSesion(Sesion sesion) {
+    public void setSesion(Sesion sesion, Runnable onSesionInvalida) {
         this.sesion = sesion;
+        this.onSesionInvalida = onSesionInvalida;
         cargarReservas();
     }
 
@@ -102,6 +105,9 @@ public class ReservasController {
                         if (fallo != null) {
                             Throwable causa = fallo.getCause() != null
                                     ? fallo.getCause() : fallo;
+                            if (gestionarSesionInvalida(causa)) {
+                                return;
+                            }
                             mensajeLabel.setText(
                                     causa.getMessage() != null
                                             ? causa.getMessage()
@@ -138,6 +144,9 @@ public class ReservasController {
                     if (fallo != null) {
                         Throwable causa = fallo.getCause() != null
                                 ? fallo.getCause() : fallo;
+                        if (gestionarSesionInvalida(causa)) {
+                            return;
+                        }
                         mensajeLabel.setText("Error: " + causa.getMessage());
                         return;
                     }
@@ -194,6 +203,9 @@ public class ReservasController {
                     if (fallo != null) {
                         Throwable causa = fallo.getCause() != null
                                 ? fallo.getCause() : fallo;
+                        if (gestionarSesionInvalida(causa)) {
+                            return;
+                        }
                         mensajeLabel.setText(
                                 causa.getMessage() != null
                                         ? causa.getMessage()
@@ -223,5 +235,18 @@ public class ReservasController {
                     }
                 })
         );
+    }
+
+    private boolean gestionarSesionInvalida(Throwable causa) {
+        if (causa instanceof ApiException errorApi
+                && "SESION_INVALIDA".equals(errorApi.codigo())) {
+            new Alert(
+                    Alert.AlertType.WARNING,
+                    "Tu sesión ya no es válida. Inicia sesión de nuevo."
+            ).showAndWait();
+            onSesionInvalida.run();
+            return true;
+        }
+        return false;
     }
 }

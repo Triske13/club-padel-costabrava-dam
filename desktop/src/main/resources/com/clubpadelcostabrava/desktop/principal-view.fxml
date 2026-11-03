@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.clubpadelcostabrava.desktop.ui.PrincipalController"
+            prefWidth="900" prefHeight="600">
+    <top>
+        <HBox spacing="8" style="-fx-padding: 12;">
+            <Button text="Agenda" onAction="#onAgenda"/>
+            <Button text="Reservas" onAction="#onReservas"/>
+            <Button text="Socios" onAction="#onSocios"/>
+            <Button text="Mi cuenta" onAction="#onMiCuenta"/>
+            <Button fx:id="salirButton" text="Salir" onAction="#onSalir"/>
+        </HBox>
+    </top>
+    <center>
+        <StackPane fx:id="contenidoPane"/>
+    </center>
+</BorderPane>

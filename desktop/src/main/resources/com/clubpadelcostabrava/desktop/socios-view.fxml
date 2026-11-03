@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.clubpadelcostabrava.desktop.ui.SociosController"
+      spacing="12" prefWidth="780" prefHeight="520"
+      style="-fx-padding: 20;">
+    <Label text="Socios"
+           style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    <Button text="Recargar" onAction="#onRecargar"/>
+    <Label fx:id="mensajeLabel"/>
+    <ListView fx:id="sociosList" VBox.vgrow="ALWAYS"/>
+</VBox>

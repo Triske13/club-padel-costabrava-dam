@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.time.LocalDate;
 
 public final class ApiCliente {
 
@@ -66,6 +67,93 @@ public final class ApiCliente {
         });
     }
 
+    /** Invalida en el servidor el token de la sesión actual. */
+    public CompletableFuture<Void> cerrarSesion(String token) {
+        HttpRequest peticion = prepararPeticion("/api/auth/logout", token)
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenAccept(respuesta -> {
+            leerRespuesta(respuesta, 204);
+        });
+    }
+
+    /** Cambia la contraseña de la cuenta autenticada. */
+    public CompletableFuture<Void> cambiarContrasena(
+            String token,
+            String contrasenaActual,
+            String nuevaContrasena
+    ) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("contrasenaActual", contrasenaActual);
+        cuerpo.addProperty("nuevaContrasena", nuevaContrasena);
+
+        HttpRequest peticion = prepararPeticion(
+                "/api/mi-cuenta/contrasena", token
+        )
+                .header("Content-Type", "application/json; charset=utf-8")
+                .PUT(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenAccept(respuesta -> {
+            leerRespuesta(respuesta, 204);
+        });
+    }
+
+    /** Solicita un código para establecer o recuperar la contraseña. */
+    public CompletableFuture<Void> solicitarCodigo(String correo) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("correo", correo);
+
+        HttpRequest peticion = prepararPeticion("/api/auth/codigo", null)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenAccept(respuesta -> {
+            leerRespuesta(respuesta, 202);
+        });
+    }
+
+    /** Establece una nueva contraseña mediante un código recibido por correo. */
+    public CompletableFuture<Void> establecerContrasena(
+            String correo,
+            String codigo,
+            String nuevaContrasena
+    ) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("correo", correo);
+        cuerpo.addProperty("codigo", codigo);
+        cuerpo.addProperty("nuevaContrasena", nuevaContrasena);
+
+        HttpRequest peticion = prepararPeticion("/api/auth/contrasena", null)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenAccept(respuesta -> {
+            leerRespuesta(respuesta, 204);
+        });
+    }
+
     /** Consulta las reservas visibles para administración. */
     public CompletableFuture<List<Reserva>> listarReservasAdmin(String token) {
         HttpRequest peticion = prepararPeticion("/api/admin/reservas", token)
@@ -85,6 +173,42 @@ public final class ApiCliente {
             }
 
             return List.copyOf(reservas);
+        });
+    }
+
+    /** Consulta las horas de todas las pistas para una fecha. */
+    public CompletableFuture<List<FranjaAgenda>> consultarAgenda(
+            String token, LocalDate fecha
+    ) {
+        HttpRequest peticion = prepararPeticion(
+                "/api/disponibilidad?fecha=" + fecha, token
+        ).GET().build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            JsonObject dia = JsonParser.parseString(texto).getAsJsonObject();
+            List<FranjaAgenda> franjas = new ArrayList<>();
+
+            for (JsonElement elementoPista : dia.getAsJsonArray("pistas")) {
+                JsonObject pista = elementoPista.getAsJsonObject();
+                int pistaId = pista.get("id").getAsInt();
+                String nombre = pista.get("nombre").getAsString();
+
+                for (JsonElement elementoFranja : pista.getAsJsonArray("franjas")) {
+                    JsonObject franja = elementoFranja.getAsJsonObject();
+                    franjas.add(new FranjaAgenda(
+                            pistaId,
+                            nombre,
+                            franja.get("horaInicio").getAsString(),
+                            franja.get("estado").getAsString()
+                    ));
+                }
+            }
+
+            return List.copyOf(franjas);
         });
     }
 
@@ -161,8 +285,12 @@ public final class ApiCliente {
 
         String mensaje = "Error HTTP " + estado;
 
+        String codigo = "ERROR_HTTP";
         try {
             JsonObject error = JsonParser.parseString(respuesta.body()).getAsJsonObject();
+            if (error.has("codigo") && !error.get("codigo").isJsonNull()) {
+                codigo = error.get("codigo").getAsString();
+            }
             if (error.has("mensaje") && !error.get("mensaje").isJsonNull()) {
                 mensaje = error.get("mensaje").getAsString();
             }
@@ -170,7 +298,7 @@ public final class ApiCliente {
             // Si no hay JSON válido, conservamos el mensaje con el código HTTP.
         }
 
-        throw new IllegalStateException(mensaje);
+        throw new ApiException(estado, codigo, mensaje);
     }
 
     /** Convierte los datos JSON de la API en una reserva para la interfaz. */
@@ -188,5 +316,39 @@ public final class ApiCliente {
                 json.get("estado").getAsString(),
                 json.get("puedeCancelar").getAsBoolean()
         );
+    }
+
+    /** Consulta las fichas de socios visibles para ADMIN. */
+    public CompletableFuture<List<Socio>> listarSocios(String token) {
+        HttpRequest peticion = prepararPeticion("/api/admin/socios", token)
+                .GET()
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            JsonArray elementos = JsonParser.parseString(texto).getAsJsonArray();
+            List<Socio> socios = new ArrayList<>();
+
+            for (JsonElement elemento : elementos) {
+                JsonObject json = elemento.getAsJsonObject();
+
+                socios.add(new Socio(
+                        json.get("id").getAsInt(),
+                        json.get("nombre").getAsString(),
+                        json.get("apellidos").getAsString(),
+                        json.get("telefono").getAsString(),
+                        json.get("direccion").getAsString(),
+                        json.get("poblacion").getAsString(),
+                        json.get("correo").getAsString(),
+                        json.get("estado").getAsString(),
+                        json.get("cuentaActivada").getAsBoolean()
+                ));
+            }
+
+            return List.copyOf(socios);
+        });
     }
 }

@@ -10,5 +10,6 @@
     <TextField fx:id="correoField" promptText="Correo"/>
     <PasswordField fx:id="contrasenaField" promptText="Contraseña"/>
     <Button fx:id="entrarButton" text="Entrar" onAction="#onEntrar"/>
+    <Hyperlink text="He olvidado mi contraseña" onAction="#onRecuperar"/>
     <Label fx:id="mensajeLabel"/>
 </VBox>
