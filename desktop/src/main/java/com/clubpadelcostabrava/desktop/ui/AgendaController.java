@@ -1,21 +1,27 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
-import com.clubpadelcostabrava.desktop.data.ApiException;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiException;
 import com.clubpadelcostabrava.desktop.data.FranjaAgenda;
 import com.clubpadelcostabrava.desktop.data.Sesion;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
+/** Muestra la disponibilidad diaria de cada pista en una pestaña. */
 public class AgendaController {
 
     @FXML private DatePicker fechaPicker;
     @FXML private Label mensajeLabel;
-    @FXML private ListView<FranjaAgenda> franjasList;
+    @FXML private TabPane pistasTabPane;
 
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
@@ -29,23 +35,39 @@ public class AgendaController {
         onConsultar();
     }
 
-    @FXML
-    private void initialize() {
-        franjasList.setCellFactory(lista -> new ListCell<>() {
-            @Override
-            protected void updateItem(FranjaAgenda franja, boolean vacio) {
-                super.updateItem(franja, vacio);
+    /** Crea una pestaña y una tabla por cada pista recibida. */
+    private void mostrarPistas(List<FranjaAgenda> franjas) {
+        Map<Integer, List<FranjaAgenda>> porPista = new LinkedHashMap<>();
 
-                if (vacio || franja == null) {
-                    setText(null);
-                    return;
-                }
+        for (FranjaAgenda franja : franjas) {
+            porPista.computeIfAbsent(
+                    franja.pistaId(), id -> new ArrayList<>()
+            ).add(franja);
+        }
 
-                setText(franja.pistaNombre()
-                        + " · " + franja.horaInicio()
-                        + " · " + franja.estado());
-            }
-        });
+        pistasTabPane.getTabs().clear();
+
+        for (List<FranjaAgenda> horas : porPista.values()) {
+            TableView<FranjaAgenda> tabla = new TableView<>();
+
+            TableColumn<FranjaAgenda, String> horaCol =
+                    new TableColumn<>("Hora");
+            horaCol.setCellValueFactory(fila ->
+                    new ReadOnlyStringWrapper(fila.getValue().horaInicio()));
+
+            TableColumn<FranjaAgenda, String> estadoCol =
+                    new TableColumn<>("Estado");
+            estadoCol.setCellValueFactory(fila ->
+                    new ReadOnlyStringWrapper(fila.getValue().estado()));
+
+            tabla.getColumns().addAll(horaCol, estadoCol);
+            tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+            tabla.getItems().setAll(horas);
+
+            Tab pestaña = new Tab(horas.get(0).pistaNombre(), tabla);
+            pestaña.setClosable(false);
+            pistasTabPane.getTabs().add(pestaña);
+        }
     }
 
     @FXML
@@ -79,8 +101,11 @@ public class AgendaController {
                         return;
                     }
 
-                    franjasList.getItems().setAll(franjas);
-                    mensajeLabel.setText("Franjas: " + franjas.size());
+                    mostrarPistas(franjas);
+                    mensajeLabel.setText(
+                            "Pistas: " + pistasTabPane.getTabs().size()
+                                    + " · Franjas: " + franjas.size()
+                    );
                 })
         );
     }

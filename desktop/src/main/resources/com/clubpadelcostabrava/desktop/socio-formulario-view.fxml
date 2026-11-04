@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.clubpadelcostabrava.desktop.ui.SocioFormularioController"
+      spacing="6" prefWidth="400"
+      style="-fx-padding: 12;">
+    <Label text="Nombre"/>
+    <TextField fx:id="nombreField"/>
+
+    <Label text="Apellidos"/>
+    <TextField fx:id="apellidosField"/>
+
+    <Label text="Teléfono"/>
+    <TextField fx:id="telefonoField"/>
+
+    <Label text="Dirección"/>
+    <TextField fx:id="direccionField"/>
+
+    <Label text="Población"/>
+    <TextField fx:id="poblacionField"/>
+
+    <Label text="Correo"/>
+    <TextField fx:id="correoField"/>
+</VBox>

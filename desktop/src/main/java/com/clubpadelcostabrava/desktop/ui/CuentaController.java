@@ -1,7 +1,7 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
-import com.clubpadelcostabrava.desktop.data.ApiException;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiException;
 import com.clubpadelcostabrava.desktop.data.Sesion;
 import javafx.application.Platform;
 import javafx.fxml.FXML;

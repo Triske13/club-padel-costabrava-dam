@@ -1,6 +1,6 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

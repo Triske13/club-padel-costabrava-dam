@@ -1,21 +1,31 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiException;
+import com.clubpadelcostabrava.desktop.data.Reserva;
 import com.clubpadelcostabrava.desktop.data.Sesion;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import javafx.scene.control.Alert;
-import com.clubpadelcostabrava.desktop.data.Reserva;
-import com.clubpadelcostabrava.desktop.data.ApiException;
 
-/** Controla la consulta y creación de reservas desde recepción. */
+/** Gestiona la consulta, creación y cancelación de reservas desde recepción. */
 public class ReservasController {
 
-    @FXML private ListView<Reserva> reservasList;
+    @FXML private TableView<Reserva> reservasTable;
+    @FXML private TableColumn<Reserva, Integer> idCol;
+    @FXML private TableColumn<Reserva, String> socioCol;
+    @FXML private TableColumn<Reserva, String> pistaCol;
+    @FXML private TableColumn<Reserva, String> fechaCol;
+    @FXML private TableColumn<Reserva, String> inicioCol;
+    @FXML private TableColumn<Reserva, String> finCol;
+    @FXML private TableColumn<Reserva, Integer> horasCol;
+    @FXML private TableColumn<Reserva, String> estadoCol;
     @FXML private Label mensajeLabel;
     @FXML private TextField socioIdField;
     @FXML private TextField pistaIdField;
@@ -40,27 +50,26 @@ public class ReservasController {
     private void initialize() {
         duracionBox.getItems().setAll(1, 2);
         duracionBox.setValue(1);
-        reservasList.setCellFactory(lista -> new ListCell<>() {
-            @Override
-            protected void updateItem(Reserva reserva, boolean vacia) {
-                super.updateItem(reserva, vacia);
-
-                setText(vacia || reserva == null ? null
-                        : "#%d · %s · %s · %s %s (%d h) · %s".formatted(
-                        reserva.id(),
-                        reserva.socioNombre(),
-                        reserva.pistaNombre(),
-                        reserva.fecha(),
-                        reserva.horaInicio(),
-                        reserva.duracionHoras(),
-                        reserva.estado()
-                ));
-            }
-        });
+        idCol.setCellValueFactory(fila ->
+                new ReadOnlyObjectWrapper<>(fila.getValue().id()));
+        socioCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().socioNombre()));
+        pistaCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().pistaNombre()));
+        fechaCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().fecha()));
+        inicioCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().horaInicio()));
+        finCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().horaFin()));
+        horasCol.setCellValueFactory(fila ->
+                new ReadOnlyObjectWrapper<>(fila.getValue().duracionHoras()));
+        estadoCol.setCellValueFactory(fila ->
+                new ReadOnlyStringWrapper(fila.getValue().estado()));
 
         cancelarButton.setDisable(true);
 
-        reservasList.getSelectionModel().selectedItemProperty().addListener(
+        reservasTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, anterior, actual) ->
                         cancelarButton.setDisable(
                                 actual == null || !actual.puedeCancelar()
@@ -151,7 +160,7 @@ public class ReservasController {
                         return;
                     }
 
-                    reservasList.getItems().setAll(reservas);
+                    reservasTable.getItems().setAll(reservas);
                     mensajeLabel.setText("Reservas: " + reservas.size());
                 })
         );
@@ -160,7 +169,7 @@ public class ReservasController {
     @FXML
     private void onCancelar() {
         Reserva seleccionada =
-                reservasList.getSelectionModel().getSelectedItem();
+                reservasTable.getSelectionModel().getSelectedItem();
 
         if (seleccionada == null || !seleccionada.puedeCancelar()) {
             mensajeLabel.setText("Selecciona una reserva cancelable.");
@@ -216,7 +225,7 @@ public class ReservasController {
                     }
 
                     motivoCancelacionField.clear();
-                    reservasList.getSelectionModel().clearSelection();
+                    reservasTable.getSelectionModel().clearSelection();
                     cancelarButton.setDisable(true);
                     cargarReservas();
 

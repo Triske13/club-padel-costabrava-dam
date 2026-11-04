@@ -20,7 +20,18 @@
     </HBox>
     <Button text="Recargar" onAction="#onRecargar"/>
     <Label fx:id="mensajeLabel"/>
-    <ListView fx:id="reservasList"/>
+    <TableView fx:id="reservasTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idCol" text="ID" prefWidth="55"/>
+            <TableColumn fx:id="socioCol" text="Socio" prefWidth="180"/>
+            <TableColumn fx:id="pistaCol" text="Pista" prefWidth="120"/>
+            <TableColumn fx:id="fechaCol" text="Fecha" prefWidth="110"/>
+            <TableColumn fx:id="inicioCol" text="Inicio" prefWidth="80"/>
+            <TableColumn fx:id="finCol" text="Fin" prefWidth="80"/>
+            <TableColumn fx:id="horasCol" text="Horas" prefWidth="65"/>
+            <TableColumn fx:id="estadoCol" text="Estado" prefWidth="110"/>
+        </columns>
+    </TableView>
     <Label text="Cancelar la reserva seleccionada"/>
     <HBox spacing="8">
         <TextField fx:id="motivoCancelacionField"

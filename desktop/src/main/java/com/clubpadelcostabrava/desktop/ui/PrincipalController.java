@@ -1,6 +1,6 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
 import com.clubpadelcostabrava.desktop.data.Sesion;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -143,8 +143,10 @@ public class PrincipalController {
             );
             Parent vistaLogin = cargador.load();
 
+            ventana.setMaximized(false);
             ventana.getScene().setRoot(vistaLogin);
             ventana.sizeToScene();
+            ventana.centerOnScreen();
         } catch (IOException e) {
             new Alert(
                     Alert.AlertType.ERROR,

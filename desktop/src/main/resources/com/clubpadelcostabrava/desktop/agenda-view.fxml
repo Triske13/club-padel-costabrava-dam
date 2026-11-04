@@ -16,5 +16,5 @@
     </HBox>
 
     <Label fx:id="mensajeLabel"/>
-    <ListView fx:id="franjasList" VBox.vgrow="ALWAYS"/>
+    <TabPane fx:id="pistasTabPane" VBox.vgrow="ALWAYS"/>
 </VBox>

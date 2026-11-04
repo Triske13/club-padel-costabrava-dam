@@ -1,4 +1,4 @@
-package com.clubpadelcostabrava.desktop.data;
+package com.clubpadelcostabrava.desktop.api;
 
 /** Error devuelto por la API, con su estado HTTP. */
 public class ApiException extends RuntimeException {

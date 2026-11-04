@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
@@ -9,7 +10,24 @@
       style="-fx-padding: 20;">
     <Label text="Socios"
            style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
-    <Button text="Recargar" onAction="#onRecargar"/>
+    <HBox spacing="8">
+        <Button text="Nuevo socio" onAction="#onNuevo"/>
+        <Button text="Editar seleccionado" onAction="#onEditar"/>
+        <Button text="Cambiar correo" onAction="#onCambiarCorreo"/>
+        <Button text="Cambiar estado" onAction="#onCambiarEstado"/>
+        <Button text="Recargar" onAction="#onRecargar"/>
+    </HBox>
     <Label fx:id="mensajeLabel"/>
-    <ListView fx:id="sociosList" VBox.vgrow="ALWAYS"/>
+    <TableView fx:id="sociosTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idCol" text="ID" prefWidth="55"/>
+            <TableColumn fx:id="nombreCol" text="Nombre" prefWidth="120"/>
+            <TableColumn fx:id="apellidosCol" text="Apellidos" prefWidth="160"/>
+            <TableColumn fx:id="telefonoCol" text="Teléfono" prefWidth="110"/>
+            <TableColumn fx:id="correoCol" text="Correo" prefWidth="230"/>
+            <TableColumn fx:id="estadoCol" text="Estado" prefWidth="100"/>
+            <TableColumn fx:id="cuentaCol" text="Cuenta" prefWidth="100"/>
+        </columns>
+    </TableView>
+    <Label fx:id="detalleLabel" wrapText="true"/>
 </VBox>

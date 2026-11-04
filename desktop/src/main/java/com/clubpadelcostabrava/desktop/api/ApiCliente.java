@@ -1,6 +1,7 @@
-package com.clubpadelcostabrava.desktop.data;
+package com.clubpadelcostabrava.desktop.api;
 
 import com.clubpadelcostabrava.desktop.ApiConfig;
+import com.clubpadelcostabrava.desktop.data.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -12,11 +13,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.time.LocalDate;
 
+/** Comunica el cliente Windows con la API del servidor sin bloquear JavaFX. */
 public final class ApiCliente {
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -212,6 +214,109 @@ public final class ApiCliente {
         });
     }
 
+    /** Crea la ficha y la cuenta de un socio desde ADMIN. */
+    public CompletableFuture<Socio> crearSocio(String token, DatosSocio datos) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("nombre", datos.nombre());
+        cuerpo.addProperty("apellidos", datos.apellidos());
+        cuerpo.addProperty("telefono", datos.telefono());
+        cuerpo.addProperty("direccion", datos.direccion());
+        cuerpo.addProperty("poblacion", datos.poblacion());
+        cuerpo.addProperty("correo", datos.correo());
+
+        HttpRequest peticion = prepararPeticion("/api/admin/socios", token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 201);
+            return parsearSocio(JsonParser.parseString(texto).getAsJsonObject());
+        });
+    }
+
+    /** Edita la ficha de un socio desde ADMIN. */
+    public CompletableFuture<Socio> editarSocio(String token, int socioId, DatosSocio datos) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("nombre", datos.nombre());
+        cuerpo.addProperty("apellidos", datos.apellidos());
+        cuerpo.addProperty("telefono", datos.telefono());
+        cuerpo.addProperty("direccion", datos.direccion());
+        cuerpo.addProperty("poblacion", datos.poblacion());
+
+        HttpRequest peticion = prepararPeticion("/api/admin/socios/" + socioId, token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .PUT(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            return parsearSocio(JsonParser.parseString(texto).getAsJsonObject());
+        });
+    }
+
+    /** Edita el correo de un socio desde ADMIN. */
+    public CompletableFuture<String> cambiarCorreoSocio(String token, int socioId, String nuevoCorreo, String contrasenaAdmin) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("nuevoCorreo", nuevoCorreo);
+        cuerpo.addProperty("contrasenaAdmin", contrasenaAdmin);
+
+        HttpRequest peticion = prepararPeticion("/api/admin/socios/" + socioId + "/correo", token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .PUT(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            return JsonParser.parseString(texto)
+                    .getAsJsonObject()
+                    .get("correo")
+                    .getAsString();
+        });
+    }
+
+    /** Cambia el estado de un socio desde ADMIN. */
+    public CompletableFuture<ResultadoEstadoSocio> cambiarEstadoSocio(String token, int socioId, String estado) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("estado", estado);
+
+        HttpRequest peticion = prepararPeticion("/api/admin/socios/" + socioId + "/estado", token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .PUT(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            JsonObject json = JsonParser.parseString(texto).getAsJsonObject();
+
+            return new ResultadoEstadoSocio(
+                    json.get("estado").getAsString(),
+                    json.get("reservasCanceladas").getAsInt(),
+                    json.get("avisoCorreo").getAsString()
+            );
+        });
+    }
+
     /** Crea una reserva para un socio desde la cuenta ADMIN. */
     public CompletableFuture<Reserva> crearReservaAdmin(
             String token,
@@ -333,22 +438,25 @@ public final class ApiCliente {
             List<Socio> socios = new ArrayList<>();
 
             for (JsonElement elemento : elementos) {
-                JsonObject json = elemento.getAsJsonObject();
-
-                socios.add(new Socio(
-                        json.get("id").getAsInt(),
-                        json.get("nombre").getAsString(),
-                        json.get("apellidos").getAsString(),
-                        json.get("telefono").getAsString(),
-                        json.get("direccion").getAsString(),
-                        json.get("poblacion").getAsString(),
-                        json.get("correo").getAsString(),
-                        json.get("estado").getAsString(),
-                        json.get("cuentaActivada").getAsBoolean()
-                ));
+                socios.add(parsearSocio(elemento.getAsJsonObject()));
             }
 
             return List.copyOf(socios);
         });
+    }
+
+    /** Convierte el JSON de una ficha en un objeto Socio. */
+    private Socio parsearSocio(JsonObject json) {
+        return new Socio(
+                json.get("id").getAsInt(),
+                json.get("nombre").getAsString(),
+                json.get("apellidos").getAsString(),
+                json.get("telefono").getAsString(),
+                json.get("direccion").getAsString(),
+                json.get("poblacion").getAsString(),
+                json.get("correo").getAsString(),
+                json.get("estado").getAsString(),
+                json.get("cuentaActivada").getAsBoolean()
+        );
     }
 }

@@ -2,14 +2,18 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.clubpadelcostabrava.desktop.ui.LoginController"
       alignment="CENTER" spacing="12" prefWidth="420" prefHeight="300">
     <Label text="Acceso de administración"/>
-    <TextField fx:id="correoField" promptText="Correo"/>
-    <PasswordField fx:id="contrasenaField" promptText="Contraseña"/>
-    <Button fx:id="entrarButton" text="Entrar" onAction="#onEntrar"/>
+    <TextField fx:id="correoField" promptText="Correo" maxWidth="280"/>
+    <PasswordField fx:id="contrasenaField" promptText="Contraseña" maxWidth="280"/>
+    <HBox alignment="CENTER" spacing="12">
+        <Button fx:id="entrarButton" text="Entrar" defaultButton="true" onAction="#onEntrar"/>
+        <Button text="Salir" onAction="#onSalir"/>
+    </HBox>
     <Hyperlink text="He olvidado mi contraseña" onAction="#onRecuperar"/>
     <Label fx:id="mensajeLabel"/>
 </VBox>

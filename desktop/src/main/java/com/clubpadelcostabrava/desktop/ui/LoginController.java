@@ -1,6 +1,6 @@
 package com.clubpadelcostabrava.desktop.ui;
 
-import com.clubpadelcostabrava.desktop.data.ApiCliente;
+import com.clubpadelcostabrava.desktop.api.ApiCliente;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -67,6 +67,7 @@ public class LoginController {
                         Stage ventana = (Stage) entrarButton.getScene().getWindow();
                         ventana.getScene().setRoot(vistaPrincipal);
                         ventana.sizeToScene();
+                        ventana.setMaximized(true);
 
                         controlador.setSesion(sesion);
                     } catch (IOException e) {
@@ -94,5 +95,11 @@ public class LoginController {
                     "No se pudo abrir la recuperación de contraseña."
             );
         }
+    }
+
+    /** Cierra la aplicación desde la pantalla de acceso. */
+    @FXML
+    private void onSalir() {
+        Platform.exit();
     }
 }
