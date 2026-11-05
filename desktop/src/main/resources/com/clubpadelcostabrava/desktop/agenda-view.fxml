@@ -17,4 +17,33 @@
 
     <Label fx:id="mensajeLabel"/>
     <TabPane fx:id="pistasTabPane" VBox.vgrow="ALWAYS"/>
+    <Label text="Crear bloqueo: selecciona una hora libre en una pista"/>
+
+    <HBox spacing="8">
+        <ComboBox fx:id="horasBloqueoBox"
+                  promptText="Horas"
+                  prefWidth="90"/>
+        <TextField fx:id="descripcionBloqueoField"
+                   promptText="Descripción opcional"
+                   prefWidth="240"/>
+        <Button fx:id="crearBloqueoButton"
+                text="Crear bloqueo"
+                onAction="#onCrearBloqueo"
+                disable="true"/>
+    </HBox>
+    <Label text="Bloqueos de la fecha"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="bloqueosTable" prefHeight="160">
+        <columns>
+            <TableColumn fx:id="pistaBloqueoCol" text="Pista"/>
+            <TableColumn fx:id="inicioBloqueoCol" text="Inicio"/>
+            <TableColumn fx:id="horasBloqueoCol" text="Horas"/>
+            <TableColumn fx:id="descripcionBloqueoCol" text="Descripción"/>
+        </columns>
+    </TableView>
+    <Button fx:id="retirarBloqueoButton"
+            text="Retirar bloqueo seleccionado"
+            disable="true"
+            onAction="#onRetirarBloqueo"/>
 </VBox>

@@ -14,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -217,6 +218,75 @@ public final class ApiCliente {
 
             return List.copyOf(franjas);
         });
+    }
+
+    /** Consulta los bloqueos manuales de una fecha. */
+    public CompletableFuture<List<Bloqueo>> listarBloqueos(
+            String token, LocalDate fecha
+    ) {
+        HttpRequest peticion = prepararPeticion(
+                "/api/admin/bloqueos?fecha=" + fecha,
+                token
+        ).GET().build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 200);
+            JsonArray elementos = JsonParser.parseString(texto).getAsJsonArray();
+            List<Bloqueo> bloqueos = new ArrayList<>();
+
+            for (JsonElement elemento : elementos) {
+                bloqueos.add(parsearBloqueo(elemento.getAsJsonObject()));
+            }
+
+            return List.copyOf(bloqueos);
+        });
+    }
+
+    /** Crea un bloqueo manual para una pista. */
+    public CompletableFuture<Bloqueo> crearBloqueo(
+            String token,
+            int pistaId,
+            LocalDate fecha,
+            LocalTime horaInicio,
+            int numeroHoras,
+            String descripcion
+    ) {
+        JsonObject cuerpo = new JsonObject();
+        cuerpo.addProperty("pistaId", pistaId);
+        cuerpo.addProperty("fecha", fecha.toString());
+        cuerpo.addProperty("horaInicio", horaInicio.toString());
+        cuerpo.addProperty("numeroHoras", numeroHoras);
+        cuerpo.addProperty("descripcion", descripcion);
+
+        HttpRequest peticion = prepararPeticion("/api/admin/bloqueos", token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        cuerpo.toString(), StandardCharsets.UTF_8
+                ))
+                .build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenApply(respuesta -> {
+            String texto = leerRespuesta(respuesta, 201);
+            return parsearBloqueo(JsonParser.parseString(texto).getAsJsonObject());
+        });
+    }
+
+    /** Retira un bloqueo futuro. */
+    public CompletableFuture<Void> retirarBloqueo(String token, int bloqueoId) {
+        HttpRequest peticion = prepararPeticion(
+                "/api/admin/bloqueos/" + bloqueoId, token
+        ).DELETE().build();
+
+        return httpClient.sendAsync(
+                peticion,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        ).thenAccept(respuesta -> leerRespuesta(respuesta, 204));
     }
 
     /** Crea la ficha y la cuenta de un socio desde ADMIN. */
@@ -462,6 +532,23 @@ public final class ApiCliente {
                 json.get("correo").getAsString(),
                 json.get("estado").getAsString(),
                 json.get("cuentaActivada").getAsBoolean()
+        );
+    }
+
+    /** Convierte un bloqueo recibido en JSON en datos para la interfaz. */
+    private Bloqueo parsearBloqueo(JsonObject json) {
+        JsonElement descripcionJson = json.get("descripcion");
+        String descripcion = descripcionJson == null || descripcionJson.isJsonNull()
+                ? null
+                : descripcionJson.getAsString();
+
+        return new Bloqueo(
+                json.get("id").getAsInt(),
+                json.get("pistaId").getAsInt(),
+                LocalDate.parse(json.get("fecha").getAsString()),
+                LocalTime.parse(json.get("horaInicio").getAsString()),
+                json.get("numeroHoras").getAsInt(),
+                descripcion
         );
     }
 }
