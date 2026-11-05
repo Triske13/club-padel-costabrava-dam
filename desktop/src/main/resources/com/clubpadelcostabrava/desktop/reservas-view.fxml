@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.*?>
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.clubpadelcostabrava.desktop.ui.ReservasController"
       spacing="12" prefWidth="780" prefHeight="520"
@@ -10,14 +9,27 @@
     <Label text="Reservas de administración"/>
     <Label text="Nueva reserva"/>
     <HBox spacing="8">
-        <TextField fx:id="socioIdField" promptText="ID socio" prefWidth="90"/>
-        <TextField fx:id="pistaIdField" promptText="ID pista" prefWidth="90"/>
+        <ComboBox fx:id="socioBox" promptText="Selecciona un socio" prefWidth="240"/>
         <DatePicker fx:id="fechaPicker" prefWidth="145"/>
-        <TextField fx:id="horaInicioField" promptText="Hora HH:mm" prefWidth="105"/>
-        <Label text="Horas:"/>
+        <ComboBox fx:id="pistaBox" promptText="Selecciona una pista" prefWidth="170"/>
+    </HBox>
+    <HBox spacing="8">
+        <Label text="Duración:"/>
         <ComboBox fx:id="duracionBox" prefWidth="70"/>
+        <ComboBox fx:id="horaBox" promptText="Hora disponible" prefWidth="150"/>
         <Button fx:id="crearButton" text="Crear" onAction="#onCrear"/>
     </HBox>
+    <Region prefHeight="10"/>
+    <Label text="Cancelar la reserva seleccionada"/>
+    <HBox spacing="8">
+        <TextField fx:id="motivoCancelacionField"
+                   promptText="Motivo obligatorio"
+                   prefWidth="450"/>
+        <Button fx:id="cancelarButton"
+                text="Cancelar reserva"
+                onAction="#onCancelar"/>
+    </HBox>
+    <Region prefHeight="10"/>
     <Button text="Recargar" onAction="#onRecargar"/>
     <Label fx:id="mensajeLabel"/>
     <TableView fx:id="reservasTable" VBox.vgrow="ALWAYS">
@@ -32,13 +44,4 @@
             <TableColumn fx:id="estadoCol" text="Estado" prefWidth="110"/>
         </columns>
     </TableView>
-    <Label text="Cancelar la reserva seleccionada"/>
-    <HBox spacing="8">
-        <TextField fx:id="motivoCancelacionField"
-                   promptText="Motivo obligatorio"
-                   prefWidth="450"/>
-        <Button fx:id="cancelarButton"
-                text="Cancelar reserva"
-                onAction="#onCancelar"/>
-    </HBox>
 </VBox>

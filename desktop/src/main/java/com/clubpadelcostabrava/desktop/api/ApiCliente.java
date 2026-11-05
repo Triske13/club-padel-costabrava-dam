@@ -201,11 +201,16 @@ public final class ApiCliente {
 
                 for (JsonElement elementoFranja : pista.getAsJsonArray("franjas")) {
                     JsonObject franja = elementoFranja.getAsJsonObject();
+                    List<Integer> duraciones = new ArrayList<>();
+                    for (JsonElement valor : franja.getAsJsonArray("duracionesDisponibles")) {
+                        duraciones.add(valor.getAsInt());
+                    }
                     franjas.add(new FranjaAgenda(
                             pistaId,
                             nombre,
                             franja.get("horaInicio").getAsString(),
-                            franja.get("estado").getAsString()
+                            franja.get("estado").getAsString(),
+                            List.copyOf(duraciones)
                     ));
                 }
             }
