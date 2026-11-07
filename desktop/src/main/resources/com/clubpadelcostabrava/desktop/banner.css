@@ -1,0 +1,6 @@
+.club-banner {
+    -fx-background-image: url("images/banner_club.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: contain;
+    -fx-background-position: 16px center;
+}

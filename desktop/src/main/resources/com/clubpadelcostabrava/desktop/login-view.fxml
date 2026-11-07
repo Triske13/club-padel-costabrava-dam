@@ -3,10 +3,17 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.clubpadelcostabrava.desktop.ui.LoginController"
-      alignment="CENTER" spacing="12" prefWidth="420" prefHeight="300">
+      alignment="CENTER" spacing="12" prefWidth="420" prefHeight="420">
+    <ImageView fitWidth="150" fitHeight="150" preserveRatio="true">
+        <image>
+            <Image url="@images/logo_club.png"/>
+        </image>
+    </ImageView>
     <Label text="Acceso de administración"/>
     <TextField fx:id="correoField" promptText="Correo" maxWidth="280"/>
     <PasswordField fx:id="contrasenaField" promptText="Contraseña" maxWidth="280"/>

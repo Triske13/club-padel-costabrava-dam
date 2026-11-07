@@ -19,6 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.size
+import com.clubpadelcostabrava.app.R
 
 @Composable
 fun LoginScreen(
@@ -36,6 +41,12 @@ fun LoginScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(R.drawable.logo_club),
+            contentDescription = "Logo del Club Pádel Costa Brava",
+            modifier = Modifier.size(160.dp),
+            contentScale = ContentScale.Fit
+        )
         Text("Acceso de socio", style = MaterialTheme.typography.headlineSmall)
 
         if (!mensaje.isNullOrBlank()) {
