@@ -4,15 +4,12 @@ import com.clubpadelcostabrava.server.calendario.HorarioService;
 import com.clubpadelcostabrava.server.socio.SocioRepository;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
+import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ReservaServiceTest {
 
@@ -107,5 +104,33 @@ class ReservaServiceTest {
 
         assertTrue(servicio.puedeCancelarAdmin(enCurso, ahora));
         assertFalse(servicio.puedeCancelarAdmin(terminada, ahora));
+    }
+
+    @Test
+    void paginaConCincuentaYUnaReservasIndicaQueHayMas() {
+        ReservaRepository repositorio = mock(ReservaRepository.class);
+        ReservaService servicioPaginado = new ReservaService(
+                repositorio,
+                mock(SocioRepository.class),
+                mock(HorarioService.class)
+        );
+
+        LocalDate fecha = LocalDate.of(2026, 10, 28);
+        var fila = reserva(
+                fecha,
+                LocalTime.of(9, 0),
+                1,
+                OffsetDateTime.parse("2026-10-20T12:00:00Z"),
+                "CONFIRMADA"
+        );
+
+        when(repositorio.listarParaAdmin(fecha, null, null, null, 51, 0L))
+                .thenReturn(Collections.nCopies(51, fila));
+
+        PaginaReservasRespuesta pagina =
+                servicioPaginado.listarPaginaParaAdmin(fecha, 0);
+
+        assertEquals(50, pagina.reservas().size());
+        assertTrue(pagina.hayMas());
     }
 }

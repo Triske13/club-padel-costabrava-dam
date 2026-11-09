@@ -23,7 +23,7 @@ public class PrincipalController {
 
     public void setSesion(Sesion sesion) {
         this.sesion = sesion;
-        onReservas();
+        onAgenda();
     }
 
     @FXML

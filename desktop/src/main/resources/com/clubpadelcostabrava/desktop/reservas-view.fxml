@@ -2,46 +2,104 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.clubpadelcostabrava.desktop.ui.ReservasController"
       spacing="12" prefWidth="780" prefHeight="520"
       style="-fx-padding: 20;">
-    <Label text="Reservas de administración"/>
+
+    <Label text="Reservas de administración"
+           style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
     <Label text="Nueva reserva"/>
+
     <HBox spacing="8">
         <ComboBox fx:id="socioBox" promptText="Selecciona un socio" prefWidth="240"/>
         <DatePicker fx:id="fechaPicker" prefWidth="145"/>
         <ComboBox fx:id="pistaBox" promptText="Selecciona una pista" prefWidth="170"/>
     </HBox>
+
     <HBox spacing="8">
         <Label text="Duración:"/>
         <ComboBox fx:id="duracionBox" prefWidth="70"/>
         <ComboBox fx:id="horaBox" promptText="Hora disponible" prefWidth="150"/>
         <Button fx:id="crearButton" text="Crear" onAction="#onCrear"/>
     </HBox>
-    <Region prefHeight="10"/>
-    <Label text="Cancelar la reserva seleccionada"/>
-    <HBox spacing="8">
-        <TextField fx:id="motivoCancelacionField"
-                   promptText="Motivo obligatorio"
-                   prefWidth="450"/>
-        <Button fx:id="cancelarButton"
-                text="Cancelar reserva"
-                onAction="#onCancelar"/>
-    </HBox>
+
     <Region prefHeight="10"/>
     <Button text="Recargar" onAction="#onRecargar"/>
     <Label fx:id="mensajeLabel"/>
-    <TableView fx:id="reservasTable" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="idCol" text="ID" prefWidth="55"/>
-            <TableColumn fx:id="socioCol" text="Socio" prefWidth="180"/>
-            <TableColumn fx:id="pistaCol" text="Pista" prefWidth="120"/>
-            <TableColumn fx:id="fechaCol" text="Fecha" prefWidth="110"/>
-            <TableColumn fx:id="inicioCol" text="Inicio" prefWidth="80"/>
-            <TableColumn fx:id="finCol" text="Fin" prefWidth="80"/>
-            <TableColumn fx:id="horasCol" text="Horas" prefWidth="65"/>
-            <TableColumn fx:id="estadoCol" text="Estado" prefWidth="110"/>
-        </columns>
-    </TableView>
+
+    <TabPane fx:id="reservasTabPane" VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+        <tabs>
+            <Tab text="Actuales">
+                <content>
+                    <VBox spacing="12" style="-fx-padding: 8;">
+                        <Label text="Cancelar la reserva seleccionada"/>
+                        <HBox spacing="8">
+                            <TextField fx:id="motivoCancelacionField"
+                                       promptText="Motivo obligatorio"
+                                       prefWidth="450"/>
+                            <Button fx:id="cancelarButton"
+                                    text="Cancelar reserva"
+                                    onAction="#onCancelar"/>
+                        </HBox>
+
+                        <HBox spacing="8">
+                            <Button fx:id="anteriorActualButton"
+                                    text="Anterior" disable="true" onAction="#onAnteriorActual"/>
+                            <Label fx:id="paginaActualLabel" text="Página 1"/>
+                            <Button fx:id="siguienteActualButton"
+                                    text="Siguiente" disable="true" onAction="#onSiguienteActual"/>
+                        </HBox>
+
+                        <TableView fx:id="reservasTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="idCol" text="ID" prefWidth="55"/>
+                                <TableColumn fx:id="socioCol" text="Socio" prefWidth="180"/>
+                                <TableColumn fx:id="pistaCol" text="Pista" prefWidth="120"/>
+                                <TableColumn fx:id="fechaCol" text="Fecha" prefWidth="110"/>
+                                <TableColumn fx:id="inicioCol" text="Inicio" prefWidth="80"/>
+                                <TableColumn fx:id="finCol" text="Fin" prefWidth="80"/>
+                                <TableColumn fx:id="horasCol" text="Horas" prefWidth="65"/>
+                                <TableColumn fx:id="estadoCol" text="Estado" prefWidth="110"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+
+            <Tab text="Histórico">
+                <content>
+                    <VBox spacing="8" style="-fx-padding: 8;">
+                        <DatePicker fx:id="fechaHistoricoPicker"
+                                    promptText="Selecciona una fecha pasada"
+                                    editable="false"/>
+
+                        <HBox spacing="8">
+                            <Button fx:id="anteriorHistoricoButton"
+                                    text="Anterior" disable="true"
+                                    onAction="#onAnteriorHistorico"/>
+                            <Label fx:id="paginaHistoricoLabel" text="Página 1"/>
+                            <Button fx:id="siguienteHistoricoButton"
+                                    text="Siguiente" disable="true"
+                                    onAction="#onSiguienteHistorico"/>
+                        </HBox>
+
+                        <TableView fx:id="historicoTable" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="historicoIdCol" text="ID" prefWidth="55"/>
+                                <TableColumn fx:id="historicoSocioCol" text="Socio" prefWidth="180"/>
+                                <TableColumn fx:id="historicoPistaCol" text="Pista" prefWidth="120"/>
+                                <TableColumn fx:id="historicoFechaCol" text="Fecha" prefWidth="110"/>
+                                <TableColumn fx:id="historicoInicioCol" text="Inicio" prefWidth="80"/>
+                                <TableColumn fx:id="historicoFinCol" text="Fin" prefWidth="80"/>
+                                <TableColumn fx:id="historicoHorasCol" text="Horas" prefWidth="65"/>
+                                <TableColumn fx:id="historicoEstadoCol" text="Estado" prefWidth="110"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+        </tabs>
+    </TabPane>
 </VBox>

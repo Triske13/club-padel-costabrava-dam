@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 
@@ -94,6 +95,40 @@ public class AdminReservasController {
         }
 
         return ResponseEntity.ok(servicio.listarParaAdmin(fecha, pistaId, socioId));
+    }
+
+    /** Lista 50 reservas por página sin cargar todo el histórico. */
+    @GetMapping("/pagina")
+    public ResponseEntity<?> listarPagina(
+            @RequestParam(value = "fecha", required = false) String fechaTexto,
+            @RequestParam(value = "pagina", defaultValue = "0") String paginaTexto
+    ) {
+        LocalDate fecha;
+        int pagina;
+
+        try {
+            fecha = fechaTexto == null ? null : LocalDate.parse(fechaTexto);
+            pagina = Integer.parseInt(paginaTexto);
+        } catch (DateTimeParseException | NumberFormatException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorApi("DATOS_INVALIDOS", "Fecha o página no válida."));
+        }
+
+        if (pagina < 0) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorApi("DATOS_INVALIDOS", "La página no puede ser negativa."));
+        }
+
+        LocalDate hoy = LocalDate.now(ZoneId.of("Europe/Madrid"));
+        if (fecha != null && !fecha.isBefore(hoy)) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorApi(
+                            "DATOS_INVALIDOS",
+                            "Selecciona una fecha anterior a hoy para el histórico."
+                    ));
+        }
+
+        return ResponseEntity.ok(servicio.listarPaginaParaAdmin(fecha, pagina));
     }
 
     /** Cancela una reserva y, una vez guardada, intenta avisar al socio. */

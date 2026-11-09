@@ -12,6 +12,7 @@ import javafx.util.StringConverter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -19,7 +20,9 @@ import java.util.List;
 /** Gestiona la consulta, creación y cancelación de reservas desde recepción. */
 public class ReservasController {
 
+    @FXML private TabPane reservasTabPane;
     @FXML private TableView<Reserva> reservasTable;
+    @FXML private TableView<Reserva> historicoTable;
     @FXML private TableColumn<Reserva, Integer> idCol;
     @FXML private TableColumn<Reserva, String> socioCol;
     @FXML private TableColumn<Reserva, String> pistaCol;
@@ -28,6 +31,21 @@ public class ReservasController {
     @FXML private TableColumn<Reserva, String> finCol;
     @FXML private TableColumn<Reserva, Integer> horasCol;
     @FXML private TableColumn<Reserva, String> estadoCol;
+    @FXML private TableColumn<Reserva, Integer> historicoIdCol;
+    @FXML private TableColumn<Reserva, String> historicoSocioCol;
+    @FXML private TableColumn<Reserva, String> historicoPistaCol;
+    @FXML private TableColumn<Reserva, String> historicoFechaCol;
+    @FXML private TableColumn<Reserva, String> historicoInicioCol;
+    @FXML private TableColumn<Reserva, String> historicoFinCol;
+    @FXML private TableColumn<Reserva, Integer> historicoHorasCol;
+    @FXML private TableColumn<Reserva, String> historicoEstadoCol;
+    @FXML private Button anteriorActualButton;
+    @FXML private Button siguienteActualButton;
+    @FXML private Label paginaActualLabel;
+    @FXML private DatePicker fechaHistoricoPicker;
+    @FXML private Button anteriorHistoricoButton;
+    @FXML private Button siguienteHistoricoButton;
+    @FXML private Label paginaHistoricoLabel;
     @FXML private Label mensajeLabel;
     @FXML private ComboBox<Socio> socioBox;
     @FXML private ComboBox<Pista> pistaBox;
@@ -37,10 +55,13 @@ public class ReservasController {
     @FXML private Button crearButton;
     @FXML private TextField motivoCancelacionField;
     @FXML private Button cancelarButton;
+
     private List<FranjaAgenda> franjasDelDia = List.of();
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
     private Runnable onSesionInvalida;
+    private int paginaActual = 0;
+    private int paginaHistorico = 0;
 
     /** Recibe la sesión ADMIN al abrir esta pantalla. */
     public void setSesion(Sesion sesion, Runnable onSesionInvalida) {
@@ -95,6 +116,15 @@ public class ReservasController {
         estadoCol.setCellValueFactory(fila ->
                 new ReadOnlyStringWrapper(fila.getValue().estado()));
 
+        historicoIdCol.setCellValueFactory(idCol.getCellValueFactory());
+        historicoSocioCol.setCellValueFactory(socioCol.getCellValueFactory());
+        historicoPistaCol.setCellValueFactory(pistaCol.getCellValueFactory());
+        historicoFechaCol.setCellValueFactory(fechaCol.getCellValueFactory());
+        historicoInicioCol.setCellValueFactory(inicioCol.getCellValueFactory());
+        historicoFinCol.setCellValueFactory(finCol.getCellValueFactory());
+        historicoHorasCol.setCellValueFactory(horasCol.getCellValueFactory());
+        historicoEstadoCol.setCellValueFactory(estadoCol.getCellValueFactory());
+
         cancelarButton.setDisable(true);
 
         reservasTable.getSelectionModel().selectedItemProperty().addListener(
@@ -113,6 +143,22 @@ public class ReservasController {
         );
         duracionBox.valueProperty().addListener(
                 (obs, anterior, actual) -> actualizarHoras()
+        );
+        fechaHistoricoPicker.setDayCellFactory(selector -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate fecha, boolean vacia) {
+                super.updateItem(fecha, vacia);
+                setDisable(
+                        vacia || fecha == null
+                                || !fecha.isBefore(LocalDate.now(ZoneId.of("Europe/Madrid")))
+                );
+            }
+        });
+        fechaHistoricoPicker.valueProperty().addListener(
+                (observable, anterior, nuevaFecha) -> {
+                    paginaHistorico = 0;
+                    cargarHistorico();
+                }
         );
     }
 
@@ -209,6 +255,8 @@ public class ReservasController {
                         ).show();
 
                         cargarPistas(fechaPicker.getValue());
+                        reservasTabPane.getSelectionModel().selectFirst();
+                        paginaActual = 0;
                         cargarReservas();
                     })
             );
@@ -219,14 +267,22 @@ public class ReservasController {
 
     @FXML
     private void onRecargar() {
-        cargarReservas();
+        if (reservasTabPane.getSelectionModel().getSelectedIndex() == 0) {
+            cargarReservas();
+        } else {
+            cargarHistorico();
+        }
+
         cargarPistas(fechaPicker.getValue());
     }
 
     private void cargarReservas() {
         mensajeLabel.setText("Cargando reservas...");
+        anteriorActualButton.setDisable(true);
+        siguienteActualButton.setDisable(true);
 
-        api.listarReservasAdmin(sesion.token()).whenComplete((reservas, fallo) ->
+        api.listarPaginaReservasAdmin(sesion.token(), null, paginaActual)
+                .whenComplete((pagina, fallo) ->
                 Platform.runLater(() -> {
                     if (fallo != null) {
                         Throwable causa = fallo.getCause() != null
@@ -238,10 +294,102 @@ public class ReservasController {
                         return;
                     }
 
-                    reservasTable.getItems().setAll(reservas);
-                    mensajeLabel.setText("Reservas: " + reservas.size());
+                    reservasTable.getItems().setAll(pagina.reservas());
+                    paginaActualLabel.setText("Página " + (paginaActual + 1));
+                    anteriorActualButton.setDisable(paginaActual == 0);
+                    siguienteActualButton.setDisable(!pagina.hayMas());
+                    mensajeLabel.setText(
+                            "Reservas actuales en esta página: " + pagina.reservas().size()
+                    );
                 })
         );
+    }
+
+    /** Consulta una página de reservas de la fecha histórica seleccionada. */
+    private void cargarHistorico() {
+        LocalDate fecha = fechaHistoricoPicker.getValue();
+        int paginaSolicitada = paginaHistorico;
+
+        historicoTable.getItems().clear();
+        anteriorHistoricoButton.setDisable(true);
+        siguienteHistoricoButton.setDisable(true);
+        paginaHistoricoLabel.setText("Página " + (paginaSolicitada + 1));
+
+        if (fecha == null) {
+            mensajeLabel.setText("Selecciona una fecha pasada.");
+            return;
+        }
+
+        if (!fecha.isBefore(LocalDate.now(ZoneId.of("Europe/Madrid")))) {
+            mensajeLabel.setText("El histórico requiere una fecha anterior a hoy.");
+            return;
+        }
+
+        mensajeLabel.setText("Cargando histórico...");
+
+        api.listarPaginaReservasAdmin(
+                sesion.token(), fecha, paginaSolicitada
+        ).whenComplete((pagina, fallo) ->
+                Platform.runLater(() -> {
+                    // Ignora una respuesta si ya se eligió otra fecha o página.
+                    if (!fecha.equals(fechaHistoricoPicker.getValue())
+                            || paginaSolicitada != paginaHistorico) {
+                        return;
+                    }
+
+                    if (fallo != null) {
+                        Throwable causa = fallo.getCause() != null
+                                ? fallo.getCause() : fallo;
+                        if (gestionarSesionInvalida(causa)) {
+                            return;
+                        }
+                        mensajeLabel.setText("Error al cargar el histórico: "
+                                + causa.getMessage());
+                        return;
+                    }
+
+                    historicoTable.getItems().setAll(pagina.reservas());
+                    paginaHistoricoLabel.setText(
+                            "Página " + (paginaSolicitada + 1)
+                    );
+                    anteriorHistoricoButton.setDisable(paginaSolicitada == 0);
+                    siguienteHistoricoButton.setDisable(!pagina.hayMas());
+                    mensajeLabel.setText(
+                            "Reservas del " + fecha + " en esta página: "
+                                    + pagina.reservas().size()
+                    );
+                })
+        );
+    }
+
+    @FXML
+    private void onAnteriorActual() {
+        if (paginaActual > 0) {
+            paginaActual--;
+            cargarReservas();
+        }
+    }
+
+    @FXML
+    private void onSiguienteActual() {
+        paginaActual++;
+        cargarReservas();
+    }
+
+    @FXML
+    private void onAnteriorHistorico() {
+        if (paginaHistorico > 0) {
+            paginaHistorico--;
+            cargarHistorico();
+        }
+    }
+
+    @FXML
+    private void onSiguienteHistorico() {
+        if (fechaHistoricoPicker.getValue() != null) {
+            paginaHistorico++;
+            cargarHistorico();
+        }
     }
 
     /** Carga en el desplegable únicamente los socios activos. */

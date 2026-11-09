@@ -20,6 +20,7 @@ public class ReservaService {
     private final ReservaRepository reservas;
     private final SocioRepository socios;
     private final HorarioService horarios;
+    private static final int TAMANO_PAGINA = 50;
 
     public ReservaService(ReservaRepository reservas, SocioRepository socios, HorarioService horarios) {
         this.reservas = reservas;
@@ -311,6 +312,37 @@ public class ReservaService {
         }
 
         return List.copyOf(respuesta);
+    }
+
+    /** Devuelve una página de reservas actuales o de la fecha indicada. */
+    public PaginaReservasRespuesta listarPaginaParaAdmin(LocalDate fecha, int pagina) {
+        if (pagina < 0) {
+            throw new IllegalArgumentException("La página no puede ser negativa.");
+        }
+
+        ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
+        LocalDate desde = fecha == null ? ahora.toLocalDate() : null;
+
+        List<ReservaRepository.ReservaDatos> filas = reservas.listarParaAdmin(
+                fecha,
+                null,
+                null,
+                desde,
+                TAMANO_PAGINA + 1,
+                pagina * (long) TAMANO_PAGINA
+        );
+
+        boolean hayMas = filas.size() > TAMANO_PAGINA;
+        List<ReservaRespuesta> respuesta = new ArrayList<>();
+
+        int visibles = Math.min(TAMANO_PAGINA, filas.size());
+        for (int i = 0; i < visibles; i++) {
+            ReservaRepository.ReservaDatos reserva = filas.get(i);
+            boolean puedeCancelar = puedeCancelarAdmin(reserva, ahora);
+            respuesta.add(prepararRespuesta(reserva, puedeCancelar));
+        }
+
+        return new PaginaReservasRespuesta(List.copyOf(respuesta), hayMas);
     }
 
     /** Convierte los datos almacenados al formato que reciben los clientes. */

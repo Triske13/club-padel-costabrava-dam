@@ -245,10 +245,12 @@ public class ReservaRepository {
         ).stream().findFirst();
     }
 
-    /** Lista reservas para administración, aplicando los filtros indicados. */
-    public List<ReservaDatos> listarParaAdmin(
-            LocalDate fecha, Integer pistaId, Integer socioId
-    ) {
+    public List<ReservaDatos> listarParaAdmin(LocalDate fecha, Integer pistaId, Integer socioId) {
+        return listarParaAdmin(fecha, pistaId, socioId, null, null, 0L);
+    }
+
+    /** Consulta reservas y admite filtros y paginación opcionales. */
+    public List<ReservaDatos> listarParaAdmin(LocalDate fecha, Integer pistaId, Integer socioId, LocalDate desde, Integer limite, long desplazamiento) {
         StringBuilder sql = new StringBuilder("""
             SELECT r.id,
                    r.socio_id,
@@ -276,6 +278,10 @@ public class ReservaRepository {
             sql.append(" AND r.fecha = ?");
             parametros.add(fecha);
         }
+        if (desde != null) {
+            sql.append(" AND r.fecha >= ?");
+            parametros.add(desde);
+        }
         if (pistaId != null) {
             sql.append(" AND r.pista_id = ?");
             parametros.add(pistaId);
@@ -285,7 +291,17 @@ public class ReservaRepository {
             parametros.add(socioId);
         }
 
-        sql.append(" ORDER BY r.fecha DESC, r.hora_inicio DESC, r.id DESC");
+        if (desde != null) {
+            sql.append(" ORDER BY r.fecha ASC, r.hora_inicio ASC, r.id ASC");
+        } else {
+            sql.append(" ORDER BY r.fecha DESC, r.hora_inicio DESC, r.id DESC");
+        }
+
+        if (limite != null) {
+            sql.append(" LIMIT ? OFFSET ?");
+            parametros.add(limite);
+            parametros.add(desplazamiento);
+        }
 
         return jdbcTemplate.query(
                 sql.toString(),

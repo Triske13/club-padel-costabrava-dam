@@ -17,6 +17,8 @@
 
     <Label fx:id="mensajeLabel"/>
     <TabPane fx:id="pistasTabPane" VBox.vgrow="ALWAYS"/>
+    <Label text="Bloquear pista"
+           style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
     <Label text="Crear bloqueo: selecciona una hora libre en una pista"/>
 
     <HBox spacing="8">

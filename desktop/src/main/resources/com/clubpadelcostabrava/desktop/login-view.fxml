@@ -14,7 +14,8 @@
             <Image url="@images/logo_club.png"/>
         </image>
     </ImageView>
-    <Label text="Acceso de administración"/>
+    <Label text="Acceso de administración"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
     <TextField fx:id="correoField" promptText="Correo" maxWidth="280"/>
     <PasswordField fx:id="contrasenaField" promptText="Contraseña" maxWidth="280"/>
     <HBox alignment="CENTER" spacing="12">

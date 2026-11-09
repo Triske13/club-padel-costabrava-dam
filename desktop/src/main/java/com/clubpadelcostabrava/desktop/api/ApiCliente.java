@@ -157,9 +157,16 @@ public final class ApiCliente {
         });
     }
 
-    /** Consulta las reservas visibles para administración. */
-    public CompletableFuture<List<Reserva>> listarReservasAdmin(String token) {
-        HttpRequest peticion = prepararPeticion("/api/admin/reservas", token)
+    /** Consulta una página de reservas actuales o de una fecha del histórico. */
+    public CompletableFuture<PaginaReservas> listarPaginaReservasAdmin(
+            String token, LocalDate fecha, int pagina
+    ) {
+        String ruta = "/api/admin/reservas/pagina?pagina=" + pagina;
+        if (fecha != null) {
+            ruta += "&fecha=" + fecha;
+        }
+
+        HttpRequest peticion = prepararPeticion(ruta, token)
                 .GET()
                 .build();
 
@@ -168,14 +175,17 @@ public final class ApiCliente {
                 HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
         ).thenApply(respuesta -> {
             String texto = leerRespuesta(respuesta, 200);
-            JsonArray elementos = JsonParser.parseString(texto).getAsJsonArray();
-            List<Reserva> reservas = new ArrayList<>();
+            JsonObject json = JsonParser.parseString(texto).getAsJsonObject();
 
-            for (JsonElement elemento : elementos) {
+            List<Reserva> reservas = new ArrayList<>();
+            for (JsonElement elemento : json.getAsJsonArray("reservas")) {
                 reservas.add(parsearReserva(elemento.getAsJsonObject()));
             }
 
-            return List.copyOf(reservas);
+            return new PaginaReservas(
+                    List.copyOf(reservas),
+                    json.get("hayMas").getAsBoolean()
+            );
         });
     }
 

@@ -71,7 +71,7 @@ public class LoginController {
 
                         controlador.setSesion(sesion);
                     } catch (IOException e) {
-                        mensajeLabel.setText("No se pudo abrir la pantalla de reservas.");
+                        mensajeLabel.setText("No se pudo abrir la pantalla de agenda.");
                     }
                 })
         );
