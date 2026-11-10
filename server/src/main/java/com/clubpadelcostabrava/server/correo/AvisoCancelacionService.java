@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/** Prepara y envía el aviso de reservas canceladas por inactivación. */
+/**
+ * Prepara e intenta enviar los avisos de reservas canceladas
+ * por administración o por inactivación de un socio.
+ */
 @Service
 public class AvisoCancelacionService {
     private final JavaMailSender mailSender;
@@ -20,6 +23,12 @@ public class AvisoCancelacionService {
     private static final Logger log =
             LoggerFactory.getLogger(AvisoCancelacionService.class);
 
+    /**
+     * Recibe el servicio de correo y la dirección remitente configurada.
+     *
+     * @param mailSender envío de mensajes por SMTP
+     * @param remitente  dirección desde la que se envían los avisos
+     */
     public AvisoCancelacionService(
             JavaMailSender mailSender,
             @Value("${spring.mail.username}") String remitente
@@ -28,7 +37,15 @@ public class AvisoCancelacionService {
         this.remitente = remitente;
     }
 
-    /** Devuelve si el servidor de correo aceptó el mensaje; registra los fallos. */
+    /**
+     * Intenta enviar un único correo con el resumen de las reservas
+     * canceladas al inactivar a un socio.
+     *
+     * @param destinatario correo del socio
+     * @param canceladas   reservas que se incluirán en el resumen
+     * @return true si el servidor de correo aceptó el envío;
+     * false si se produjo un error de correo
+     */
     public boolean avisarInactivacion(
             String destinatario, List<ReservaCancelada> canceladas
     ) {
@@ -65,7 +82,15 @@ public class AvisoCancelacionService {
         }
     }
 
-    /** Intenta avisar al socio de una cancelación hecha por ADMIN. */
+    /**
+     * Intenta avisar de una cancelación administrativa.
+     * El mensaje incluye pista, fecha, horario y motivo.
+     *
+     * @param destinatario correo del socio
+     * @param reserva      reserva cancelada que se comunicará
+     * @return true si el servidor de correo aceptó el envío;
+     * false si se produjo un error de correo
+     */
     public boolean avisarCancelacionAdmin(
             String destinatario,
             ReservaRespuesta reserva

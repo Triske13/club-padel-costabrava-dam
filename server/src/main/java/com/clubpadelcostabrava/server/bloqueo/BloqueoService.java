@@ -12,19 +12,34 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-/** Aplica las reglas de negocio para consultar, crear y retirar bloqueos de pista. */
+/**
+ * Aplica las reglas de negocio para consultar, crear y retirar bloqueos.
+ * Coordina la comprobación del horario y los cambios en la base de datos.
+ */
 @Service
 public class BloqueoService {
 
     private final BloqueoRepository bloqueos;
     private final HorarioService horarios;
 
+    /**
+     * Recibe el acceso a bloqueos y el servicio que calcula el horario.
+     *
+     * @param bloqueos acceso a bloqueos y ocupaciones
+     * @param horarios cálculo del horario aplicable a cada fecha
+     */
     public BloqueoService(BloqueoRepository bloqueos, HorarioService horarios) {
         this.bloqueos = bloqueos;
         this.horarios = horarios;
     }
 
-    /** Devuelve los bloqueos de una fecha; la fecha es obligatoria. */
+    /**
+     * Consulta los bloqueos de una fecha.
+     *
+     * @param fecha fecha que se desea consultar
+     * @return bloqueos de esa fecha
+     * @throws IllegalArgumentException si no se indica una fecha
+     */
     public List<BloqueoRespuesta> listarPorFecha(LocalDate fecha) {
         if (fecha == null) {
             throw new IllegalArgumentException("Indica una fecha.");
@@ -34,8 +49,16 @@ public class BloqueoService {
     }
 
     /**
-     * Valida el bloqueo y ocupa cada una de sus horas en una sola transacción.
-     * Si alguna hora ya está ocupada, se deshace toda la creación.
+     * Valida y crea un bloqueo junto con la ocupación de cada hora.
+     * La operación es transaccional: si una hora ya está ocupada,
+     * no permanece guardado un bloqueo parcial.
+     *
+     * @param datos   pista, fecha, hora, duración y descripción del bloqueo
+     * @param adminId identificador de la cuenta administradora que lo crea
+     * @return bloqueo creado
+     * @throws IllegalArgumentException si faltan datos, el inicio no es futuro
+     *                                  o las horas no caben en el horario
+     * @throws NoSuchElementException   si la pista no existe
      */
     @Transactional
     public BloqueoRespuesta crear(CrearBloqueoPeticion datos, int adminId) {
@@ -100,8 +123,13 @@ public class BloqueoService {
     }
 
     /**
-     * Retira un bloqueo que aún no ha comenzado.
-     * La base de datos elimina también sus ocupaciones asociadas.
+     * Retira un bloqueo que todavía no ha comenzado.
+     * Al eliminarlo, la base de datos elimina también sus ocupaciones.
+     *
+     * @param id identificador del bloqueo
+     * @throws IllegalArgumentException si el identificador no es positivo
+     * @throws NoSuchElementException   si el bloqueo no existe
+     * @throws IllegalStateException    si el bloqueo ya ha comenzado
      */
     @Transactional
     public void retirar(int id) {

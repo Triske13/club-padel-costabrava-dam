@@ -14,6 +14,11 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+/**
+ * Controla la pantalla principal de la aplicación de administración.
+ * Mantiene la sesión ADMIN y carga en el área central las vistas de agenda,
+ * reservas, socios y cuenta.
+ */
 public class PrincipalController {
 
     @FXML
@@ -21,11 +26,20 @@ public class PrincipalController {
 
     private Sesion sesion;
 
+    /**
+     * Guarda la sesión recibida después del login y abre la agenda como vista inicial.
+     *
+     * @param sesion sesión ADMIN que utilizarán las distintas pantallas
+     */
     public void setSesion(Sesion sesion) {
         this.sesion = sesion;
         onAgenda();
     }
 
+    /**
+     * Carga la vista de reservas y le proporciona la sesión actual.
+     * Si no se puede abrir el archivo FXML, muestra un mensaje en el área central.
+     */
     @FXML
     private void onReservas() {
         try {
@@ -47,6 +61,10 @@ public class PrincipalController {
         }
     }
 
+    /**
+     * Carga la vista de gestión de socios y le proporciona la sesión actual.
+     * Si falla la carga del FXML, muestra un mensaje en el área central.
+     */
     @FXML
     private void onSocios() {
         try {
@@ -68,6 +86,10 @@ public class PrincipalController {
         }
     }
 
+    /**
+     * Carga la agenda de pistas y le proporciona la sesión actual.
+     * También se utiliza para mostrar la primera vista tras iniciar sesión.
+     */
     @FXML
     private void onAgenda() {
         try {
@@ -89,6 +111,10 @@ public class PrincipalController {
         }
     }
 
+    /**
+     * Carga la vista desde la que ADMIN puede cambiar su contraseña.
+     * Le proporciona la sesión y la acción para volver al login si termina.
+     */
     @FXML
     private void onMiCuenta() {
         try {
@@ -114,6 +140,11 @@ public class PrincipalController {
     private Button salirButton;
     private final ApiCliente api = new ApiCliente();
 
+    /**
+     * Solicita al servidor el cierre de la sesión actual.
+     * Después vuelve al login; si el servidor no confirma el cierre,
+     * muestra un aviso antes de abandonar la pantalla principal.
+     */
     @FXML
     private void onSalir() {
         salirButton.setDisable(true);
@@ -132,6 +163,10 @@ public class PrincipalController {
         );
     }
 
+    /**
+     * Sustituye la vista principal por el formulario de acceso.
+     * Si no puede cargarlo, muestra un error y cierra la ventana.
+     */
     private void abrirLogin() {
         Stage ventana = (Stage) contenidoPane.getScene().getWindow();
 

@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Aplica las reglas de negocio de socios y coordina los cambios de base de datos. */
+/**
+ * Aplica las reglas de gestión de socios y coordina los cambios
+ * de ficha, cuenta, reservas y sesiones.
+ */
 @Service
 public class SocioService {
     private final SocioRepository socios;
@@ -21,6 +24,15 @@ public class SocioService {
     private final SesionService sesiones;
     private final ReservaRepository reservas;
 
+    /**
+     * Recibe los componentes necesarios para gestionar socios y sus cuentas.
+     *
+     * @param socios          acceso a fichas de socios
+     * @param cuentas         acceso a cuentas y códigos pendientes
+     * @param passwordEncoder comprobación de la contraseña de ADMIN
+     * @param sesiones        gestión de sesiones activas
+     * @param reservas        acceso a las reservas del socio
+     */
     public SocioService(
             SocioRepository socios,
             CuentaRepository cuentas,
@@ -35,7 +47,13 @@ public class SocioService {
         this.reservas = reservas;
     }
 
-    /** Guarda ficha y cuenta en una misma transacción. */
+    /**
+     * Crea la ficha del socio y su cuenta asociada en una misma transacción.
+     *
+     * @param datos datos personales y correo del nuevo socio
+     * @return ficha del socio creado
+     * @throws IllegalArgumentException si faltan datos o no son válidos
+     */
     @Transactional
     public SocioRespuesta crear(CrearSocioPeticion datos) {
         CrearSocioPeticion limpio = validar(datos);
@@ -44,7 +62,14 @@ public class SocioService {
         return socios.buscarPorId(id).orElseThrow();
     }
 
-    /** Modifica la ficha, dejando el correo para su operación específica. */
+    /**
+     * Modifica los datos personales de un socio sin cambiar su correo.
+     *
+     * @param id    identificador del socio
+     * @param datos nuevos datos personales
+     * @return ficha actualizada, o un Optional vacío si el socio no existe
+     * @throws IllegalArgumentException si los datos no son válidos
+     */
     @Transactional
     public Optional<SocioRespuesta> editar(int id, EditarSocioPeticion datos) {
         EditarSocioPeticion limpio = validar(datos);
@@ -57,7 +82,17 @@ public class SocioService {
         return socios.buscarPorId(id);
     }
 
-    /** Cambia el correo y anula los códigos y sesiones anteriores de esa cuenta. */
+    /**
+     * Cambia el correo de un socio tras comprobar la contraseña de ADMIN.
+     * Elimina el código temporal pendiente e invalida las sesiones de la cuenta.
+     *
+     * @param socioId identificador del socio
+     * @param adminId identificador de la cuenta administradora
+     * @param datos   nuevo correo y contraseña de confirmación
+     * @return ficha actualizada, o un Optional vacío si el socio no existe
+     * @throws IllegalArgumentException       si los datos o el nuevo correo no son válidos
+     * @throws CredencialesInvalidasException si la contraseña de ADMIN es incorrecta
+     */
     @Transactional
     public Optional<SocioRespuesta> cambiarCorreo(
             int socioId, int adminId, CambiarCorreoPeticion datos
@@ -85,7 +120,17 @@ public class SocioService {
         return socios.buscarPorId(socioId);
     }
 
-    /** Inactiva o reactiva; al inactivar cancela reservas futuras y libera sus horas. */
+    /**
+     * Activa o inactiva un socio. Al inactivarlo, cancela sus reservas
+     * futuras y libera sus horas dentro de la misma transacción.
+     * Repetir el estado actual no provoca nuevas cancelaciones.
+     *
+     * @param socioId identificador del socio
+     * @param adminId identificador de la cuenta administradora
+     * @param datos   estado solicitado
+     * @return resultado del cambio, o un Optional vacío si el socio no existe
+     * @throws IllegalArgumentException si el estado no es válido
+     */
     @Transactional
     public Optional<ResultadoEstado> cambiarEstado(
             int socioId, int adminId, CambiarEstadoPeticion datos
@@ -120,7 +165,15 @@ public class SocioService {
         ));
     }
 
-    /** Quita espacios exteriores y comprueba presencia y longitud máxima. */
+    /**
+     * Quita los espacios exteriores y valida un campo obligatorio.
+     *
+     * @param valor  texto recibido
+     * @param campo  nombre del campo usado en el mensaje de error
+     * @param maximo número máximo de caracteres Unicode permitidos
+     * @return texto limpio
+     * @throws IllegalArgumentException si falta, está vacío o supera el máximo
+     */
     private String obligatorio(String valor, String campo, int maximo) {
         if (valor == null) {
             throw new IllegalArgumentException("El campo " + campo + " es obligatorio.");
@@ -139,7 +192,13 @@ public class SocioService {
         return limpio;
     }
 
-    /** Valida y normaliza los datos necesarios para crear un socio. */
+    /**
+     * Valida y normaliza los datos necesarios para crear un socio.
+     *
+     * @param datos datos recibidos para el alta
+     * @return petición con los textos limpios y el correo normalizado
+     * @throws IllegalArgumentException si falta algún dato o no es válido
+     */
     private CrearSocioPeticion validar(CrearSocioPeticion datos) {
         if (datos == null) {
             throw new IllegalArgumentException("Faltan los datos del socio.");
@@ -157,7 +216,13 @@ public class SocioService {
         );
     }
 
-    /** Valida los datos personales editables de un socio. */
+    /**
+     * Valida los datos personales que pueden modificarse sin cambiar el correo.
+     *
+     * @param datos datos recibidos para la edición
+     * @return petición con los textos limpios
+     * @throws IllegalArgumentException si falta algún dato o no es válido
+     */
     private EditarSocioPeticion validar(EditarSocioPeticion datos) {
         if (datos == null) {
             throw new IllegalArgumentException("Faltan los datos del socio.");
@@ -172,7 +237,13 @@ public class SocioService {
         );
     }
 
-    /** Acepta únicamente los dos estados definidos para los socios. */
+    /**
+     * Normaliza el estado solicitado y acepta solo ACTIVO o INACTIVO.
+     *
+     * @param datos petición de cambio de estado
+     * @return estado válido en mayúsculas
+     * @throws IllegalArgumentException si falta o tiene otro valor
+     */
     private String validarEstado(CambiarEstadoPeticion datos) {
         if (datos == null || datos.estado() == null) {
             throw new IllegalArgumentException("El estado es obligatorio.");
@@ -186,7 +257,13 @@ public class SocioService {
         return estado;
     }
 
-    /** Compara la contraseña recibida con el hash del administrador autenticado. */
+    /**
+     * Comprueba la contraseña de la cuenta administradora autenticada.
+     *
+     * @param adminId    identificador de la cuenta administradora
+     * @param contrasena contraseña introducida para confirmar la operación
+     * @throws CredencialesInvalidasException si no coincide con su hash
+     */
     private void comprobarContrasenaAdmin(int adminId, String contrasena) {
         boolean correcta = contrasena != null
                 && cuentas.hashAdministrador(adminId)
@@ -198,7 +275,14 @@ public class SocioService {
         }
     }
 
-    /** Convierte el correo a minúsculas y comprueba un formato básico. */
+    /**
+     * Quita los espacios exteriores, convierte el correo a minúsculas
+     * y comprueba su longitud y un formato básico.
+     *
+     * @param valor correo recibido
+     * @return correo normalizado
+     * @throws IllegalArgumentException si falta o no tiene un formato válido
+     */
     private String normalizarCorreo(String valor) {
         String correo = obligatorio(valor, "correo", 255)
                 .toLowerCase(Locale.ROOT);
@@ -210,12 +294,21 @@ public class SocioService {
         return correo;
     }
 
-    /** Resultado usado para invalidar sesiones y enviar avisos fuera de la transacción. */
+    /**
+     * Datos que necesita el controlador tras cambiar el estado del socio.
+     *
+     * @param estado             estado resultante del socio
+     * @param correo             correo al que puede enviarse el aviso
+     * @param cuentaId           identificador de la cuenta asociada
+     * @param cambiado           indica si el estado realmente cambió
+     * @param reservasCanceladas reservas canceladas al inactivar al socio
+     */
     public record ResultadoEstado(
             String estado,
             String correo,
             int cuentaId,
             boolean cambiado,
             List<ReservaRepository.ReservaCancelada> reservasCanceladas
-    ) {}
+    ) {
+    }
 }

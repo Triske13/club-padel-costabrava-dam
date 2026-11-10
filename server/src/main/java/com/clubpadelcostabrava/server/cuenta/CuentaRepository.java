@@ -5,27 +5,40 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-/** Ejecuta las consultas de cuentas usadas por el acceso y la administración. */
+/**
+ * Ejecuta las consultas SQL de cuentas utilizadas
+ * por la autenticación y la administración.
+ */
 @Repository
 public class CuentaRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    /** Recibe JdbcTemplate para ejecutar SQL con parámetros. */
+    /**
+     * Recibe el componente que ejecuta las consultas SQL.
+     *
+     * @param jdbcTemplate acceso JDBC a la base de datos
+     */
     public CuentaRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /** Busca una cuenta y, si es USER, incorpora el estado de su ficha de socio. */
+    /**
+     * Busca una cuenta por correo. Si pertenece a un socio,
+     * incorpora también el estado de su ficha.
+     *
+     * @param correo correo normalizado en minúsculas
+     * @return datos de acceso, o un Optional vacío si no existe
+     */
     public Optional<CuentaAcceso> buscarPorCorreo(String correo) {
         return jdbcTemplate.query(
                 """
-                SELECT c.id, c.correo, c.contrasena_hash, c.rol,
-                       s.estado AS estado_socio
-                FROM cuenta c
-                LEFT JOIN socio s ON s.id = c.socio_id
-                WHERE lower(c.correo) = ?
-                """,
+                        SELECT c.id, c.correo, c.contrasena_hash, c.rol,
+                               s.estado AS estado_socio
+                        FROM cuenta c
+                        LEFT JOIN socio s ON s.id = c.socio_id
+                        WHERE lower(c.correo) = ?
+                        """,
                 (rs, fila) -> new CuentaAcceso(
                         rs.getInt("id"),
                         rs.getString("correo"),
@@ -37,27 +50,43 @@ public class CuentaRepository {
         ).stream().findFirst();
     }
 
-    /** Datos de cuenta necesarios para verificar credenciales y estado. */
+    /**
+     * Datos necesarios para comprobar las credenciales y el estado de una cuenta.
+     *
+     * @param id             identificador de la cuenta
+     * @param correo         correo de acceso
+     * @param contrasenaHash hash de la contraseña, o null si aún no está establecida
+     * @param rol            ADMIN o USER
+     * @param estadoSocio    estado de la ficha si es USER; null si es ADMIN
+     */
     public record CuentaAcceso(
             int id,
             String correo,
             String contrasenaHash,
             String rol,
             String estadoSocio
-    ) {}
+    ) {
+    }
 
-    /** Comprueba en cada petición que la cuenta aún puede usar su token. */
+    /**
+     * Comprueba si una cuenta todavía puede utilizar una sesión.
+     * Exige contraseña y, para USER, una ficha de socio ACTIVA.
+     *
+     * @param cuentaId identificador de la cuenta
+     * @param rol      rol asociado a la sesión
+     * @return true si la cuenta existe y sigue habilitada
+     */
     public boolean cuentaHabilitada(int cuentaId, String rol) {
         Integer cantidad = jdbcTemplate.queryForObject(
                 """
-                SELECT COUNT(*)
-                FROM cuenta c
-                LEFT JOIN socio s ON s.id = c.socio_id
-                WHERE c.id = ?
-                  AND c.rol = ?
-                  AND c.contrasena_hash IS NOT NULL
-                  AND (c.rol = 'ADMIN' OR s.estado = 'ACTIVO')
-                """,
+                        SELECT COUNT(*)
+                        FROM cuenta c
+                        LEFT JOIN socio s ON s.id = c.socio_id
+                        WHERE c.id = ?
+                          AND c.rol = ?
+                          AND c.contrasena_hash IS NOT NULL
+                          AND (c.rol = 'ADMIN' OR s.estado = 'ACTIVO')
+                        """,
                 Integer.class,
                 cuentaId,
                 rol
@@ -65,20 +94,31 @@ public class CuentaRepository {
         return cantidad != null && cantidad == 1;
     }
 
-    /** Obtiene el hash del ADMIN para confirmar su contraseña antes de cambiar un correo. */
+    /**
+     * Obtiene el hash de la contraseña de una cuenta ADMIN.
+     * Se utiliza para confirmar su identidad antes de cambiar un correo.
+     *
+     * @param cuentaId identificador de la cuenta administradora
+     * @return hash encontrado, o un Optional vacío si no existe
+     */
     public Optional<String> hashAdministrador(int cuentaId) {
         return jdbcTemplate.query(
                 """
-                SELECT contrasena_hash
-                FROM cuenta
-                WHERE id = ? AND rol = 'ADMIN'
-                """,
+                        SELECT contrasena_hash
+                        FROM cuenta
+                        WHERE id = ? AND rol = 'ADMIN'
+                        """,
                 (rs, fila) -> rs.getString("contrasena_hash"),
                 cuentaId
         ).stream().findFirst();
     }
 
-    /** Localiza la cuenta USER asociada a una ficha de socio. */
+    /**
+     * Busca la cuenta USER asociada a una ficha de socio.
+     *
+     * @param socioId identificador del socio
+     * @return identificador de la cuenta, o un Optional vacío si no existe
+     */
     public Optional<Integer> idUsuarioPorSocio(int socioId) {
         return jdbcTemplate.query(
                 "SELECT id FROM cuenta WHERE socio_id = ? AND rol = 'USER'",
@@ -87,21 +127,30 @@ public class CuentaRepository {
         ).stream().findFirst();
     }
 
-    /** Obtiene el socio asociado a una cuenta USER autenticada. */
+    /**
+     * Obtiene el socio titular de una cuenta USER autenticada.
+     *
+     * @param cuentaId identificador de la cuenta
+     * @return identificador del socio, o un Optional vacío si no existe
+     */
     public Optional<Integer> socioIdPorCuenta(int cuentaId) {
         return jdbcTemplate.query(
                 """
-                SELECT socio_id
-                FROM cuenta
-                WHERE id = ?
-                  AND rol = 'USER'
-                """,
+                        SELECT socio_id
+                        FROM cuenta
+                        WHERE id = ?
+                          AND rol = 'USER'
+                        """,
                 (rs, fila) -> rs.getInt("socio_id"),
                 cuentaId
         ).stream().findFirst();
     }
 
-    /** Anula el código temporal de una cuenta cuando deja de ser válido. */
+    /**
+     * Elimina el código temporal que pueda tener pendiente una cuenta.
+     *
+     * @param cuentaId identificador de la cuenta
+     */
     public void eliminarCodigoPendiente(int cuentaId) {
         jdbcTemplate.update(
                 "DELETE FROM codigo_temporal WHERE cuenta_id = ?",
@@ -109,7 +158,12 @@ public class CuentaRepository {
         );
     }
 
-    /** Guarda el nuevo hash de contraseña de una cuenta. */
+    /**
+     * Guarda el nuevo hash de contraseña de una cuenta.
+     *
+     * @param cuentaId       identificador de la cuenta
+     * @param contrasenaHash nuevo hash de la contraseña
+     */
     public void actualizarContrasenaHash(int cuentaId, String contrasenaHash) {
         jdbcTemplate.update(
                 """
@@ -122,7 +176,13 @@ public class CuentaRepository {
         );
     }
 
-    /** Obtiene el hash de la cuenta autenticada para comprobar su contraseña actual. */
+    /**
+     * Obtiene el hash de una cuenta que ya tiene contraseña establecida.
+     *
+     * @param cuentaId identificador de la cuenta
+     * @return hash encontrado, o un Optional vacío si la cuenta
+     * no existe o aún no tiene contraseña
+     */
     public Optional<String> buscarHashPorId(int cuentaId) {
         return jdbcTemplate.query(
                 """

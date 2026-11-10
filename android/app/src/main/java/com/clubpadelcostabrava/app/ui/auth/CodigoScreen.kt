@@ -20,6 +20,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
+/**
+ * Muestra el formulario para activar la cuenta o recuperar la contraseña.
+ * Permite solicitar un código por correo y utilizarlo para establecer
+ * una contraseña nueva, validando antes el formato del código y su longitud.
+ *
+ * @param cargando indica si hay una petición en curso
+ * @param error mensaje de error que se debe mostrar, o null si no hay error
+ * @param mensaje mensaje informativo devuelto tras solicitar el código
+ * @param onSolicitarCodigo acción que recibe el correo para pedir el código
+ * @param onEstablecerContrasena acción que recibe correo, código y nueva contraseña
+ * @param onVolver acción que regresa a la pantalla de acceso
+ */
 @Composable
 fun CodigoScreen(
     cargando: Boolean,
@@ -37,7 +49,9 @@ fun CodigoScreen(
         nuevaContrasena.codePointCount(0, nuevaContrasena.length)
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

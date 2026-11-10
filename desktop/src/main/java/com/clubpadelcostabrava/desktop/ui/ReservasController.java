@@ -17,44 +17,83 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-/** Gestiona la consulta, creación y cancelación de reservas desde recepción. */
+/**
+ * Controla la consulta, creación y cancelación de reservas desde recepción.
+ * Muestra por separado las reservas desde hoy y el histórico de una fecha,
+ * con paginación para limitar los datos cargados en cada tabla.
+ */
 public class ReservasController {
 
-    @FXML private TabPane reservasTabPane;
-    @FXML private TableView<Reserva> reservasTable;
-    @FXML private TableView<Reserva> historicoTable;
-    @FXML private TableColumn<Reserva, Integer> idCol;
-    @FXML private TableColumn<Reserva, String> socioCol;
-    @FXML private TableColumn<Reserva, String> pistaCol;
-    @FXML private TableColumn<Reserva, String> fechaCol;
-    @FXML private TableColumn<Reserva, String> inicioCol;
-    @FXML private TableColumn<Reserva, String> finCol;
-    @FXML private TableColumn<Reserva, Integer> horasCol;
-    @FXML private TableColumn<Reserva, String> estadoCol;
-    @FXML private TableColumn<Reserva, Integer> historicoIdCol;
-    @FXML private TableColumn<Reserva, String> historicoSocioCol;
-    @FXML private TableColumn<Reserva, String> historicoPistaCol;
-    @FXML private TableColumn<Reserva, String> historicoFechaCol;
-    @FXML private TableColumn<Reserva, String> historicoInicioCol;
-    @FXML private TableColumn<Reserva, String> historicoFinCol;
-    @FXML private TableColumn<Reserva, Integer> historicoHorasCol;
-    @FXML private TableColumn<Reserva, String> historicoEstadoCol;
-    @FXML private Button anteriorActualButton;
-    @FXML private Button siguienteActualButton;
-    @FXML private Label paginaActualLabel;
-    @FXML private DatePicker fechaHistoricoPicker;
-    @FXML private Button anteriorHistoricoButton;
-    @FXML private Button siguienteHistoricoButton;
-    @FXML private Label paginaHistoricoLabel;
-    @FXML private Label mensajeLabel;
-    @FXML private ComboBox<Socio> socioBox;
-    @FXML private ComboBox<Pista> pistaBox;
-    @FXML private DatePicker fechaPicker;
-    @FXML private ComboBox<String> horaBox;
-    @FXML private ComboBox<Integer> duracionBox;
-    @FXML private Button crearButton;
-    @FXML private TextField motivoCancelacionField;
-    @FXML private Button cancelarButton;
+    @FXML
+    private TabPane reservasTabPane;
+    @FXML
+    private TableView<Reserva> reservasTable;
+    @FXML
+    private TableView<Reserva> historicoTable;
+    @FXML
+    private TableColumn<Reserva, Integer> idCol;
+    @FXML
+    private TableColumn<Reserva, String> socioCol;
+    @FXML
+    private TableColumn<Reserva, String> pistaCol;
+    @FXML
+    private TableColumn<Reserva, String> fechaCol;
+    @FXML
+    private TableColumn<Reserva, String> inicioCol;
+    @FXML
+    private TableColumn<Reserva, String> finCol;
+    @FXML
+    private TableColumn<Reserva, Integer> horasCol;
+    @FXML
+    private TableColumn<Reserva, String> estadoCol;
+    @FXML
+    private TableColumn<Reserva, Integer> historicoIdCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoSocioCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoPistaCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoFechaCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoInicioCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoFinCol;
+    @FXML
+    private TableColumn<Reserva, Integer> historicoHorasCol;
+    @FXML
+    private TableColumn<Reserva, String> historicoEstadoCol;
+    @FXML
+    private Button anteriorActualButton;
+    @FXML
+    private Button siguienteActualButton;
+    @FXML
+    private Label paginaActualLabel;
+    @FXML
+    private DatePicker fechaHistoricoPicker;
+    @FXML
+    private Button anteriorHistoricoButton;
+    @FXML
+    private Button siguienteHistoricoButton;
+    @FXML
+    private Label paginaHistoricoLabel;
+    @FXML
+    private Label mensajeLabel;
+    @FXML
+    private ComboBox<Socio> socioBox;
+    @FXML
+    private ComboBox<Pista> pistaBox;
+    @FXML
+    private DatePicker fechaPicker;
+    @FXML
+    private ComboBox<String> horaBox;
+    @FXML
+    private ComboBox<Integer> duracionBox;
+    @FXML
+    private Button crearButton;
+    @FXML
+    private TextField motivoCancelacionField;
+    @FXML
+    private Button cancelarButton;
 
     private List<FranjaAgenda> franjasDelDia = List.of();
     private final ApiCliente api = new ApiCliente();
@@ -63,7 +102,12 @@ public class ReservasController {
     private int paginaActual = 0;
     private int paginaHistorico = 0;
 
-    /** Recibe la sesión ADMIN al abrir esta pantalla. */
+    /**
+     * Recibe la sesión ADMIN y carga las reservas actuales y los socios.
+     *
+     * @param sesion           sesión utilizada para autorizar las peticiones
+     * @param onSesionInvalida acción para volver al login si la sesión caduca
+     */
     public void setSesion(Sesion sesion, Runnable onSesionInvalida) {
         this.sesion = sesion;
         this.onSesionInvalida = onSesionInvalida;
@@ -71,11 +115,24 @@ public class ReservasController {
         cargarSocios();
     }
 
+    /**
+     * Configura las columnas, los selectores y sus cambios de selección.
+     * Prepara las tablas de reservas actuales e históricas, limita el selector
+     * del histórico a fechas pasadas y actualiza las horas al cambiar la pista
+     * o la duración.
+     */
     @FXML
     private void initialize() {
         duracionBox.getItems().setAll(1, 2);
         duracionBox.setValue(1);
         socioBox.setConverter(new StringConverter<>() {
+
+            /**
+             * Muestra el nombre y los apellidos del socio en el desplegable.
+             *
+             * @param socio socio que se va a representar, o null si no hay selección
+             * @return nombre visible del socio, o una cadena vacía
+             */
             @Override
             public String toString(Socio socio) {
                 return socio == null
@@ -83,17 +140,36 @@ public class ReservasController {
                         : socio.nombre() + " " + socio.apellidos();
             }
 
+            /**
+             * No convierte texto libre en un socio, ya que debe elegirse uno de la lista.
+             *
+             * @param texto texto recibido por el conversor
+             * @return null, porque este selector no admite crear socios desde texto
+             */
             @Override
             public Socio fromString(String texto) {
                 return null;
             }
         });
         pistaBox.setConverter(new StringConverter<>() {
+
+            /**
+             * Muestra el nombre de la pista en el desplegable.
+             *
+             * @param pista pista que se va a representar, o null si no hay selección
+             * @return nombre visible de la pista, o una cadena vacía
+             */
             @Override
             public String toString(Pista pista) {
                 return pista == null ? "" : pista.nombre();
             }
 
+            /**
+             * No convierte texto libre en una pista, ya que debe elegirse una de la lista.
+             *
+             * @param texto texto recibido por el conversor
+             * @return null, porque este selector no admite crear pistas desde texto
+             */
             @Override
             public Pista fromString(String texto) {
                 return null;
@@ -145,6 +221,13 @@ public class ReservasController {
                 (obs, anterior, actual) -> actualizarHoras()
         );
         fechaHistoricoPicker.setDayCellFactory(selector -> new DateCell() {
+
+            /**
+             * Deshabilita las celdas vacías y las fechas que no pertenecen al histórico.
+             *
+             * @param fecha fecha representada por la celda
+             * @param vacia indica si la celda está vacía
+             */
             @Override
             public void updateItem(LocalDate fecha, boolean vacia) {
                 super.updateItem(fecha, vacia);
@@ -162,7 +245,10 @@ public class ReservasController {
         );
     }
 
-    /** Actualiza las horas al cambiar la pista o la duración. */
+    /**
+     * Actualiza las horas seleccionables según la pista y la duración elegidas.
+     * Deshabilita el selector cuando faltan datos o no hay franjas disponibles.
+     */
     private void actualizarHoras() {
         horaBox.getItems().clear();
         horaBox.setValue(null);
@@ -180,6 +266,11 @@ public class ReservasController {
         horaBox.setDisable(horas.isEmpty());
     }
 
+    /**
+     * Comprueba que se hayan elegido socio, pista, fecha y hora antes de solicitar
+     * una reserva desde ADMIN. Muestra el resultado, actualiza la disponibilidad
+     * y recarga la primera página de reservas actuales si se confirma.
+     */
     @FXML
     private void onCrear() {
         if (fechaPicker.getValue() == null) {
@@ -265,6 +356,10 @@ public class ReservasController {
         }
     }
 
+    /**
+     * Recarga la pestaña de reservas que está visible y vuelve a consultar
+     * las pistas disponibles para la fecha seleccionada.
+     */
     @FXML
     private void onRecargar() {
         if (reservasTabPane.getSelectionModel().getSelectedIndex() == 0) {
@@ -276,6 +371,11 @@ public class ReservasController {
         cargarPistas(fechaPicker.getValue());
     }
 
+    /**
+     * Consulta de forma asíncrona una página de reservas desde el día actual.
+     * Actualiza la tabla, el número de página y los botones para avanzar
+     * o retroceder según la respuesta del servidor.
+     */
     private void cargarReservas() {
         mensajeLabel.setText("Cargando reservas...");
         anteriorActualButton.setDisable(true);
@@ -283,29 +383,33 @@ public class ReservasController {
 
         api.listarPaginaReservasAdmin(sesion.token(), null, paginaActual)
                 .whenComplete((pagina, fallo) ->
-                Platform.runLater(() -> {
-                    if (fallo != null) {
-                        Throwable causa = fallo.getCause() != null
-                                ? fallo.getCause() : fallo;
-                        if (gestionarSesionInvalida(causa)) {
-                            return;
-                        }
-                        mensajeLabel.setText("Error: " + causa.getMessage());
-                        return;
-                    }
+                        Platform.runLater(() -> {
+                            if (fallo != null) {
+                                Throwable causa = fallo.getCause() != null
+                                        ? fallo.getCause() : fallo;
+                                if (gestionarSesionInvalida(causa)) {
+                                    return;
+                                }
+                                mensajeLabel.setText("Error: " + causa.getMessage());
+                                return;
+                            }
 
-                    reservasTable.getItems().setAll(pagina.reservas());
-                    paginaActualLabel.setText("Página " + (paginaActual + 1));
-                    anteriorActualButton.setDisable(paginaActual == 0);
-                    siguienteActualButton.setDisable(!pagina.hayMas());
-                    mensajeLabel.setText(
-                            "Reservas actuales en esta página: " + pagina.reservas().size()
-                    );
-                })
-        );
+                            reservasTable.getItems().setAll(pagina.reservas());
+                            paginaActualLabel.setText("Página " + (paginaActual + 1));
+                            anteriorActualButton.setDisable(paginaActual == 0);
+                            siguienteActualButton.setDisable(!pagina.hayMas());
+                            mensajeLabel.setText(
+                                    "Reservas actuales en esta página: " + pagina.reservas().size()
+                            );
+                        })
+                );
     }
 
-    /** Consulta una página de reservas de la fecha histórica seleccionada. */
+    /**
+     * Consulta una página de reservas de la fecha pasada seleccionada.
+     * Descarta la respuesta si el usuario cambia de fecha o de página
+     * antes de que termine la petición.
+     */
     private void cargarHistorico() {
         LocalDate fecha = fechaHistoricoPicker.getValue();
         int paginaSolicitada = paginaHistorico;
@@ -362,6 +466,10 @@ public class ReservasController {
         );
     }
 
+    /**
+     * Retrocede una página en la lista de reservas actuales si no se está
+     * mostrando la primera página.
+     */
     @FXML
     private void onAnteriorActual() {
         if (paginaActual > 0) {
@@ -370,12 +478,19 @@ public class ReservasController {
         }
     }
 
+    /**
+     * Avanza una página en la lista de reservas actuales y consulta sus datos.
+     */
     @FXML
     private void onSiguienteActual() {
         paginaActual++;
         cargarReservas();
     }
 
+    /**
+     * Retrocede una página en el histórico de la fecha seleccionada si no
+     * se está mostrando la primera página.
+     */
     @FXML
     private void onAnteriorHistorico() {
         if (paginaHistorico > 0) {
@@ -384,6 +499,9 @@ public class ReservasController {
         }
     }
 
+    /**
+     * Avanza una página en el histórico cuando hay una fecha seleccionada.
+     */
     @FXML
     private void onSiguienteHistorico() {
         if (fechaHistoricoPicker.getValue() != null) {
@@ -392,7 +510,10 @@ public class ReservasController {
         }
     }
 
-    /** Carga en el desplegable únicamente los socios activos. */
+    /**
+     * Consulta los socios de forma asíncrona y muestra en el desplegable
+     * únicamente los que están activos, para poder crear reservas a su nombre.
+     */
     private void cargarSocios() {
         socioBox.setDisable(true);
 
@@ -421,7 +542,13 @@ public class ReservasController {
         );
     }
 
-    /** Consulta las pistas de la fecha elegida y conserva sus franjas. */
+    /**
+     * Consulta las franjas de la fecha elegida y prepara la lista de pistas.
+     * Descarta la respuesta si el usuario ha seleccionado otra fecha mientras
+     * se cargaban los datos.
+     *
+     * @param fecha fecha para la que se consultan las pistas y sus franjas
+     */
     private void cargarPistas(LocalDate fecha) {
         franjasDelDia = List.of();
         pistaBox.getItems().clear();
@@ -465,7 +592,14 @@ public class ReservasController {
         );
     }
 
-    /** Devuelve las horas libres de una pista que admiten la duración elegida. */
+    /**
+     * Filtra las franjas cargadas para obtener las horas libres de una pista
+     * que permiten comenzar una reserva con la duración elegida.
+     *
+     * @param pista    pista en la que se quiere reservar
+     * @param duracion duración solicitada en horas
+     * @return horas de inicio disponibles para esa pista y duración
+     */
     private List<String> horasDisponibles(Pista pista, int duracion) {
         if (pista == null) {
             return List.of();
@@ -479,6 +613,11 @@ public class ReservasController {
                 .toList();
     }
 
+    /**
+     * Comprueba que la reserva seleccionada pueda cancelarse y que se haya
+     * escrito un motivo válido. Solicita confirmación, envía la cancelación
+     * al servidor y muestra si el aviso por correo fue aceptado o falló.
+     */
     @FXML
     private void onCancelar() {
         Reserva seleccionada =
@@ -567,6 +706,13 @@ public class ReservasController {
         );
     }
 
+    /**
+     * Comprueba si el fallo de una petición indica que la sesión ha caducado.
+     * Si es así, avisa al usuario y ejecuta la acción para volver al login.
+     *
+     * @param causa error producido al consultar la API
+     * @return true si se ha gestionado una sesión inválida; false en otro caso
+     */
     private boolean gestionarSesionInvalida(Throwable causa) {
         if (causa instanceof ApiException errorApi
                 && "SESION_INVALIDA".equals(errorApi.codigo())) {

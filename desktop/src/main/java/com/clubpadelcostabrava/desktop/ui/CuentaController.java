@@ -10,22 +10,42 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 
+/**
+ * Controla el cambio de contraseña de la cuenta ADMIN autenticada.
+ * Tras un cambio correcto, informa al usuario y termina la sesión actual.
+ */
 public class CuentaController {
 
-    @FXML private PasswordField actualField;
-    @FXML private PasswordField nuevaField;
-    @FXML private Button cambiarButton;
-    @FXML private Label mensajeLabel;
+    @FXML
+    private PasswordField actualField;
+    @FXML
+    private PasswordField nuevaField;
+    @FXML
+    private Button cambiarButton;
+    @FXML
+    private Label mensajeLabel;
 
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
     private Runnable onSesionTerminada;
 
+    /**
+     * Recibe la sesión con la que se autorizará el cambio de contraseña
+     * y la acción que debe ejecutarse cuando esa sesión deje de ser válida.
+     *
+     * @param sesion            sesión ADMIN actual
+     * @param onSesionTerminada acción para volver al inicio de sesión
+     */
     public void setSesion(Sesion sesion, Runnable onSesionTerminada) {
         this.sesion = sesion;
         this.onSesionTerminada = onSesionTerminada;
     }
 
+    /**
+     * Valida la contraseña actual y la longitud de la nueva antes de enviar
+     * el cambio al servidor. Muestra el resultado y vuelve al inicio de sesión
+     * si el cambio se confirma o si la sesión ha caducado.
+     */
     @FXML
     private void onCambiarContrasena() {
         String actual = actualField.getText();

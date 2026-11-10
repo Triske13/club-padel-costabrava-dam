@@ -1,7 +1,13 @@
 package com.clubpadelcostabrava.server.socio;
 
-/** Correo nuevo y contraseña para volver a identificar al administrador. */
+/**
+ * Datos necesarios para cambiar el correo de un socio.
+ *
+ * @param nuevoCorreo     nueva dirección de correo
+ * @param contrasenaAdmin contraseña de ADMIN para confirmar su identidad
+ */
 public record CambiarCorreoPeticion(
         String nuevoCorreo,
         String contrasenaAdmin
-) {}
+) {
+}

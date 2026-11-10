@@ -2,7 +2,9 @@ package com.clubpadelcostabrava.desktop.ui;
 
 import com.clubpadelcostabrava.desktop.api.ApiCliente;
 import com.clubpadelcostabrava.desktop.api.ApiException;
-import com.clubpadelcostabrava.desktop.data.*;
+import com.clubpadelcostabrava.desktop.data.DatosSocio;
+import com.clubpadelcostabrava.desktop.data.Sesion;
+import com.clubpadelcostabrava.desktop.data.Socio;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -15,32 +17,54 @@ import javafx.scene.layout.VBox;
 import java.io.IOException;
 import java.util.Optional;
 
-/** Gestiona la consulta y modificación de socios desde administración. */
+/**
+ * Controla la consulta y gestión de socios desde la aplicación de administración.
+ * Muestra las fichas, permite crearlas o editarlas y gestiona los cambios
+ * de correo y de estado mediante la API.
+ */
 public class SociosController {
 
-    @FXML private Label mensajeLabel;
-    @FXML private TableView<Socio> sociosTable;
-    @FXML private TableColumn<Socio, Integer> idCol;
-    @FXML private TableColumn<Socio, String> nombreCol;
-    @FXML private TableColumn<Socio, String> apellidosCol;
-    @FXML private TableColumn<Socio, String> telefonoCol;
-    @FXML private TableColumn<Socio, String> correoCol;
-    @FXML private TableColumn<Socio, String> estadoCol;
-    @FXML private TableColumn<Socio, String> cuentaCol;
-    @FXML private Label detalleLabel;
+    @FXML
+    private Label mensajeLabel;
+    @FXML
+    private TableView<Socio> sociosTable;
+    @FXML
+    private TableColumn<Socio, Integer> idCol;
+    @FXML
+    private TableColumn<Socio, String> nombreCol;
+    @FXML
+    private TableColumn<Socio, String> apellidosCol;
+    @FXML
+    private TableColumn<Socio, String> telefonoCol;
+    @FXML
+    private TableColumn<Socio, String> correoCol;
+    @FXML
+    private TableColumn<Socio, String> estadoCol;
+    @FXML
+    private TableColumn<Socio, String> cuentaCol;
+    @FXML
+    private Label detalleLabel;
 
     private final ApiCliente api = new ApiCliente();
     private Sesion sesion;
     private Runnable onSesionInvalida;
 
-    /** Recibe la sesión al abrir la pantalla y carga los socios. */
+    /**
+     * Recibe la sesión ADMIN y carga la lista inicial de socios.
+     *
+     * @param sesion           sesión utilizada para autorizar las peticiones
+     * @param onSesionInvalida acción para volver al login si la sesión caduca
+     */
     public void setSesion(Sesion sesion, Runnable onSesionInvalida) {
         this.sesion = sesion;
         this.onSesionInvalida = onSesionInvalida;
         cargarSocios();
     }
 
-    /** Configura las columnas y muestra la ficha del socio seleccionado. */
+    /**
+     * Configura las columnas de la tabla y actualiza el detalle de la ficha
+     * cuando se selecciona un socio.
+     */
     @FXML
     private void initialize() {
         idCol.setCellValueFactory(fila ->
@@ -79,13 +103,18 @@ public class SociosController {
                 });
     }
 
-    /** Vuelve a consultar la lista de socios. */
+    /**
+     * Vuelve a consultar los socios cuando se pulsa el botón de recarga.
+     */
     @FXML
     private void onRecargar() {
         cargarSocios();
     }
 
-    /** Consulta la API sin bloquear la ventana. */
+    /**
+     * Consulta las fichas de socios de forma asíncrona y actualiza la tabla
+     * desde el hilo de JavaFX. Si la sesión ha caducado, vuelve al login.
+     */
     private void cargarSocios() {
         mensajeLabel.setText("Cargando socios...");
 
@@ -109,7 +138,16 @@ public class SociosController {
         );
     }
 
-    /** Abre el mismo formulario vacío para alta o relleno para edición. */
+    /**
+     * Abre el formulario para crear o editar un socio.
+     * Si recibe una ficha, rellena sus campos; si recibe null, muestra
+     * el formulario vacío para dar de alta a un socio.
+     *
+     * @param socio ficha que se va a editar, o null para crear una nueva
+     * @return datos introducidos si se pulsa Guardar, o un Optional vacío
+     * si se cancela el formulario
+     * @throws IOException si no se puede cargar la vista FXML del formulario
+     */
     private Optional<DatosSocio> mostrarFormulario(Socio socio) throws IOException {
         FXMLLoader cargador = new FXMLLoader(
                 getClass().getResource(
@@ -142,7 +180,10 @@ public class SociosController {
         return dialogo.showAndWait();
     }
 
-    /** Abre el alta y envía la nueva ficha al servidor. */
+    /**
+     * Abre el formulario de alta y envía los datos del nuevo socio a la API.
+     * Si el servidor confirma la creación, recarga la tabla y muestra un aviso.
+     */
     @FXML
     private void onNuevo() {
         try {
@@ -188,7 +229,10 @@ public class SociosController {
         }
     }
 
-    /** Modifica los datos personales del socio seleccionado. */
+    /**
+     * Abre la ficha del socio seleccionado para modificar sus datos personales.
+     * Tras guardar los cambios, recarga la tabla y muestra el resultado.
+     */
     @FXML
     private void onEditar() {
         Socio socio = sociosTable.getSelectionModel().getSelectedItem();
@@ -242,7 +286,11 @@ public class SociosController {
         }
     }
 
-    /** Pide el nuevo correo y la contraseña ADMIN antes del cambio. */
+    /**
+     * Solicita un nuevo correo y la contraseña de ADMIN para cambiar
+     * el correo del socio seleccionado. Muestra el resultado y recarga
+     * la tabla cuando el servidor confirma la operación.
+     */
     @FXML
     private void onCambiarCorreo() {
         Socio socio = sociosTable.getSelectionModel().getSelectedItem();
@@ -329,7 +377,11 @@ public class SociosController {
         );
     }
 
-    /** Confirma el cambio y muestra las reservas canceladas y el aviso. */
+    /**
+     * Pide confirmación para activar o inactivar al socio seleccionado.
+     * Después informa del nuevo estado, del número de reservas canceladas
+     * y del resultado del aviso enviado por correo.
+     */
     @FXML
     private void onCambiarEstado() {
         Socio socio = sociosTable.getSelectionModel().getSelectedItem();
@@ -406,7 +458,13 @@ public class SociosController {
                 );
     }
 
-    /** Devuelve al login cuando el servidor rechaza la sesión. */
+    /**
+     * Comprueba si un fallo de la API indica que la sesión ha dejado de ser válida.
+     * En ese caso, avisa al usuario y ejecuta la acción para volver al login.
+     *
+     * @param causa error producido al realizar una petición a la API
+     * @return true si se ha gestionado una sesión inválida; false en otro caso
+     */
     private boolean gestionarSesionInvalida(Throwable causa) {
         if (causa instanceof ApiException error
                 && "SESION_INVALIDA".equals(error.codigo())) {

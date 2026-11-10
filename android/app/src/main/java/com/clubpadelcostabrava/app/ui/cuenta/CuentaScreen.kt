@@ -20,6 +20,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
+/**
+ * Muestra las opciones de la cuenta del socio autenticado.
+ * Recoge la contraseña actual y la nueva, valida la longitud de esta última
+ * y permite cambiarla, cerrar sesión o volver a la pantalla anterior.
+ *
+ * @param cargando indica si el cambio de contraseña está en curso
+ * @param error mensaje de error que se debe mostrar, o null si no hay error
+ * @param onCambiarContrasena acción que recibe la contraseña actual y la nueva
+ * @param onVolver acción que regresa a la pantalla anterior
+ * @param onCerrarSesion acción que solicita el cierre de la sesión
+ */
 @Composable
 fun CuentaScreen(
     cargando: Boolean,
@@ -35,7 +46,9 @@ fun CuentaScreen(
         nuevaContrasena.codePointCount(0, nuevaContrasena.length)
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

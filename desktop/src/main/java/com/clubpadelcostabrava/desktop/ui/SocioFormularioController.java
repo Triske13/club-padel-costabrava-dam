@@ -5,7 +5,11 @@ import com.clubpadelcostabrava.desktop.data.Socio;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 
-/** Lee y rellena los campos del formulario de socio. */
+/**
+ * Controla los campos del formulario utilizado para crear o editar socios.
+ * Recoge los datos escritos y, en modo edición, carga la ficha existente
+ * dejando el correo como campo de solo lectura.
+ */
 public class SocioFormularioController {
 
     @FXML
@@ -21,7 +25,12 @@ public class SocioFormularioController {
     @FXML
     private TextField correoField;
 
-    /** Recoge lo escrito para enviarlo a la API. */
+    /**
+     * Lee los campos del formulario y elimina los espacios de los extremos
+     * antes de preparar los datos para enviarlos a la API.
+     *
+     * @return datos personales y correo introducidos en el formulario
+     */
     public DatosSocio leerDatos() {
         return new DatosSocio(
                 nombreField.getText().strip(),
@@ -33,7 +42,13 @@ public class SocioFormularioController {
         );
     }
 
-    /** Rellena el formulario al editar; el correo tiene otra operación. */
+    /**
+     * Rellena el formulario con la ficha del socio seleccionado.
+     * Impide editar el correo aquí porque su cambio requiere una operación
+     * independiente con confirmación de la contraseña ADMIN.
+     *
+     * @param socio ficha cuyos datos se mostrarán en el formulario
+     */
     public void cargarSocio(Socio socio) {
         nombreField.setText(socio.nombre());
         apellidosField.setText(socio.apellidos());

@@ -11,18 +11,31 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 
-/** Expone el resumen mensual utilizado por el calendario. */
+/**
+ * Expone el resumen mensual de disponibilidad utilizado por el calendario.
+ */
 @RestController
 @RequestMapping("/api/calendario")
 public class CalendarioController {
 
     private final DisponibilidadService servicio;
 
+    /**
+     * Recibe el servicio que calcula los indicadores del calendario.
+     *
+     * @param servicio cálculo de disponibilidad mensual
+     */
     public CalendarioController(DisponibilidadService servicio) {
         this.servicio = servicio;
     }
 
-    /** Interpreta el mes y obtiene los indicadores de todos sus días. */
+    /**
+     * Consulta los indicadores de todos los días de un mes.
+     *
+     * @param mes            mes en formato AAAA-MM
+     * @param authentication sesión utilizada para determinar si el usuario es ADMIN
+     * @return 200 con el resumen mensual, o 400 si el mes no es válido
+     */
     @GetMapping
     public ResponseEntity<?> consultar(
             @RequestParam(value = "mes", required = false) String mes,

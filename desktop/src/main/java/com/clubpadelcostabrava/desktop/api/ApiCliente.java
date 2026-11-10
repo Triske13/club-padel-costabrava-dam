@@ -19,14 +19,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/** Comunica el cliente Windows con la API del servidor sin bloquear JavaFX. */
+/**
+ * Comunica la aplicación de escritorio con la API del servidor.
+ * Envía las peticiones de forma asíncrona para no bloquear la interfaz JavaFX
+ * y convierte las respuestas JSON en los datos que utilizan las pantallas.
+ */
 public final class ApiCliente {
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    /** Prepara la dirección, el tiempo máximo y el token si existe. */
+    /**
+     * Prepara una petición HTTP con la URL, los tiempos de espera y las cabeceras comunes.
+     * Añade la autorización cuando la operación requiere una sesión iniciada.
+     *
+     * @param ruta  ruta de la API que se añade a la URL base
+     * @param token token de la sesión, o null para una operación pública
+     * @return constructor de la petición HTTP, listo para indicar el método y el cuerpo
+     */
     private HttpRequest.Builder prepararPeticion(String ruta, String token) {
         HttpRequest.Builder peticion = HttpRequest.newBuilder()
                 .uri(URI.create(ApiConfig.BASE_URL + ruta))
@@ -40,7 +51,14 @@ public final class ApiCliente {
         return peticion;
     }
 
-    /** Inicia sesión sin bloquear la ventana de JavaFX. */
+    /**
+     * Envía el correo y la contraseña para iniciar sesión.
+     *
+     * @param correo     correo de la cuenta
+     * @param contrasena contraseña introducida por el usuario
+     * @return operación asíncrona que proporciona el token, el rol y la caducidad
+     * de la sesión cuando el servidor acepta las credenciales
+     */
     public CompletableFuture<Sesion> iniciarSesion(
             String correo, String contrasena
     ) {
@@ -70,7 +88,12 @@ public final class ApiCliente {
         });
     }
 
-    /** Invalida en el servidor el token de la sesión actual. */
+    /**
+     * Solicita al servidor que invalide el token de la sesión actual.
+     *
+     * @param token token de la sesión que se quiere cerrar
+     * @return operación asíncrona que termina cuando el servidor confirma el cierre
+     */
     public CompletableFuture<Void> cerrarSesion(String token) {
         HttpRequest peticion = prepararPeticion("/api/auth/logout", token)
                 .POST(HttpRequest.BodyPublishers.noBody())
@@ -84,7 +107,14 @@ public final class ApiCliente {
         });
     }
 
-    /** Cambia la contraseña de la cuenta autenticada. */
+    /**
+     * Cambia la contraseña de la cuenta autenticada.
+     *
+     * @param token            token de la sesión actual
+     * @param contrasenaActual contraseña vigente de la cuenta
+     * @param nuevaContrasena  contraseña que se quiere establecer
+     * @return operación asíncrona que termina cuando el cambio queda confirmado
+     */
     public CompletableFuture<Void> cambiarContrasena(
             String token,
             String contrasenaActual,
@@ -111,7 +141,13 @@ public final class ApiCliente {
         });
     }
 
-    /** Solicita un código para establecer o recuperar la contraseña. */
+    /**
+     * Solicita un código para establecer o recuperar la contraseña.
+     * El servidor acepta la solicitud sin revelar si el correo corresponde a una cuenta.
+     *
+     * @param correo correo para el que se solicita el código
+     * @return operación asíncrona que termina cuando el servidor acepta la solicitud
+     */
     public CompletableFuture<Void> solicitarCodigo(String correo) {
         JsonObject cuerpo = new JsonObject();
         cuerpo.addProperty("correo", correo);
@@ -131,7 +167,14 @@ public final class ApiCliente {
         });
     }
 
-    /** Establece una nueva contraseña mediante un código recibido por correo. */
+    /**
+     * Establece una nueva contraseña mediante un código recibido por correo.
+     *
+     * @param correo          correo de la cuenta
+     * @param codigo          código de seguridad recibido
+     * @param nuevaContrasena contraseña que se quiere establecer
+     * @return operación asíncrona que termina cuando el servidor confirma el cambio
+     */
     public CompletableFuture<Void> establecerContrasena(
             String correo,
             String codigo,
@@ -157,7 +200,17 @@ public final class ApiCliente {
         });
     }
 
-    /** Consulta una página de reservas actuales o de una fecha del histórico. */
+    /**
+     * Consulta una página de reservas para la vista de administración.
+     * Si no se indica una fecha, el servidor devuelve reservas desde el día actual;
+     * si se indica, consulta las reservas de esa fecha.
+     *
+     * @param token  token de la sesión ADMIN
+     * @param fecha  fecha concreta del histórico, o null para las reservas actuales
+     * @param pagina número de página, comenzando por cero
+     * @return operación asíncrona con las reservas de la página y la indicación
+     * de si existe una página siguiente
+     */
     public CompletableFuture<PaginaReservas> listarPaginaReservasAdmin(
             String token, LocalDate fecha, int pagina
     ) {
@@ -189,7 +242,14 @@ public final class ApiCliente {
         });
     }
 
-    /** Consulta las horas de todas las pistas para una fecha. */
+    /**
+     * Consulta la disponibilidad de todas las pistas en una fecha y transforma
+     * cada hora recibida en una franja que puede mostrar la agenda.
+     *
+     * @param token token de la sesión ADMIN
+     * @param fecha fecha que se quiere consultar
+     * @return operación asíncrona con las franjas de todas las pistas
+     */
     public CompletableFuture<List<FranjaAgenda>> consultarAgenda(
             String token, LocalDate fecha
     ) {
@@ -230,7 +290,13 @@ public final class ApiCliente {
         });
     }
 
-    /** Consulta los bloqueos manuales de una fecha. */
+    /**
+     * Consulta los bloqueos manuales existentes en una fecha.
+     *
+     * @param token token de la sesión ADMIN
+     * @param fecha fecha de los bloqueos que se quieren mostrar
+     * @return operación asíncrona con los bloqueos encontrados
+     */
     public CompletableFuture<List<Bloqueo>> listarBloqueos(
             String token, LocalDate fecha
     ) {
@@ -255,7 +321,17 @@ public final class ApiCliente {
         });
     }
 
-    /** Crea un bloqueo manual para una pista. */
+    /**
+     * Crea un bloqueo manual para una pista y las horas indicadas.
+     *
+     * @param token       token de la sesión ADMIN
+     * @param pistaId     identificador de la pista
+     * @param fecha       fecha del bloqueo
+     * @param horaInicio  hora a la que comienza
+     * @param numeroHoras número de horas consecutivas que ocupa
+     * @param descripcion motivo o descripción del bloqueo
+     * @return operación asíncrona con el bloqueo creado por el servidor
+     */
     public CompletableFuture<Bloqueo> crearBloqueo(
             String token,
             int pistaId,
@@ -287,7 +363,13 @@ public final class ApiCliente {
         });
     }
 
-    /** Retira un bloqueo futuro. */
+    /**
+     * Solicita la retirada de un bloqueo manual.
+     *
+     * @param token     token de la sesión ADMIN
+     * @param bloqueoId identificador del bloqueo que se quiere retirar
+     * @return operación asíncrona que termina cuando se confirma su retirada
+     */
     public CompletableFuture<Void> retirarBloqueo(String token, int bloqueoId) {
         HttpRequest peticion = prepararPeticion(
                 "/api/admin/bloqueos/" + bloqueoId, token
@@ -299,7 +381,13 @@ public final class ApiCliente {
         ).thenAccept(respuesta -> leerRespuesta(respuesta, 204));
     }
 
-    /** Crea la ficha y la cuenta de un socio desde ADMIN. */
+    /**
+     * Crea desde administración la ficha de un socio y su cuenta asociada.
+     *
+     * @param token token de la sesión ADMIN
+     * @param datos datos personales y correo del nuevo socio
+     * @return operación asíncrona con la ficha creada
+     */
     public CompletableFuture<Socio> crearSocio(String token, DatosSocio datos) {
         JsonObject cuerpo = new JsonObject();
         cuerpo.addProperty("nombre", datos.nombre());
@@ -325,7 +413,15 @@ public final class ApiCliente {
         });
     }
 
-    /** Edita la ficha de un socio desde ADMIN. */
+    /**
+     * Modifica los datos personales de la ficha de un socio.
+     * El cambio de correo se realiza mediante otra operación.
+     *
+     * @param token   token de la sesión ADMIN
+     * @param socioId identificador del socio
+     * @param datos   datos personales que se quieren guardar
+     * @return operación asíncrona con la ficha actualizada
+     */
     public CompletableFuture<Socio> editarSocio(String token, int socioId, DatosSocio datos) {
         JsonObject cuerpo = new JsonObject();
         cuerpo.addProperty("nombre", datos.nombre());
@@ -350,7 +446,15 @@ public final class ApiCliente {
         });
     }
 
-    /** Edita el correo de un socio desde ADMIN. */
+    /**
+     * Cambia el correo asociado a un socio tras confirmar la contraseña de ADMIN.
+     *
+     * @param token           token de la sesión ADMIN
+     * @param socioId         identificador del socio
+     * @param nuevoCorreo     correo que sustituirá al actual
+     * @param contrasenaAdmin contraseña de ADMIN para autorizar el cambio
+     * @return operación asíncrona con el correo guardado por el servidor
+     */
     public CompletableFuture<String> cambiarCorreoSocio(String token, int socioId, String nuevoCorreo, String contrasenaAdmin) {
         JsonObject cuerpo = new JsonObject();
         cuerpo.addProperty("nuevoCorreo", nuevoCorreo);
@@ -375,7 +479,17 @@ public final class ApiCliente {
         });
     }
 
-    /** Cambia el estado de un socio desde ADMIN. */
+    /**
+     * Activa o inactiva a un socio y obtiene el resultado de la operación.
+     * Al inactivarlo, el resultado incluye las reservas canceladas y el estado
+     * del aviso enviado por correo.
+     *
+     * @param token   token de la sesión ADMIN
+     * @param socioId identificador del socio
+     * @param estado  nuevo estado solicitado
+     * @return operación asíncrona con el estado, el número de reservas
+     * canceladas y el resultado del aviso
+     */
     public CompletableFuture<ResultadoEstadoSocio> cambiarEstadoSocio(String token, int socioId, String estado) {
         JsonObject cuerpo = new JsonObject();
         cuerpo.addProperty("estado", estado);
@@ -402,7 +516,17 @@ public final class ApiCliente {
         });
     }
 
-    /** Crea una reserva para un socio desde la cuenta ADMIN. */
+    /**
+     * Crea desde administración una reserva para el socio indicado.
+     *
+     * @param token         token de la sesión ADMIN
+     * @param socioId       identificador del socio titular
+     * @param pistaId       identificador de la pista
+     * @param fecha         fecha de la reserva en formato ISO
+     * @param horaInicio    hora de inicio de la reserva
+     * @param duracionHoras duración de una o dos horas
+     * @return operación asíncrona con la reserva confirmada por el servidor
+     */
     public CompletableFuture<Reserva> crearReservaAdmin(
             String token,
             int socioId,
@@ -434,7 +558,15 @@ public final class ApiCliente {
         });
     }
 
-    /** Cancela una reserva desde ADMIN y lee el resultado del correo. */
+    /**
+     * Cancela una reserva desde administración con un motivo obligatorio.
+     * El resultado permite informar si el aviso por correo se pudo enviar.
+     *
+     * @param token     token de la sesión ADMIN
+     * @param reservaId identificador de la reserva
+     * @param motivo    explicación de la cancelación
+     * @return operación asíncrona con la reserva cancelada y el resultado del aviso
+     */
     public CompletableFuture<ResultadoCancelacion> cancelarReservaAdmin(
             String token, int reservaId, String motivo
     ) {
@@ -465,7 +597,16 @@ public final class ApiCliente {
         });
     }
 
-    /** Devuelve el cuerpo esperado o lanza el mensaje de error del servidor. */
+    /**
+     * Comprueba el estado HTTP de una respuesta.
+     * Devuelve su cuerpo si coincide con el esperado; en caso contrario,
+     * extrae el código y el mensaje de error enviados por la API.
+     *
+     * @param respuesta      respuesta HTTP recibida
+     * @param estadoEsperado estado HTTP que indica que la operación tuvo éxito
+     * @return cuerpo de la respuesta correcta
+     * @throws ApiException si el estado HTTP no coincide con el esperado
+     */
     private String leerRespuesta(HttpResponse<String> respuesta, int estadoEsperado) {
         int estado = respuesta.statusCode();
 
@@ -491,7 +632,12 @@ public final class ApiCliente {
         throw new ApiException(estado, codigo, mensaje);
     }
 
-    /** Convierte los datos JSON de la API en una reserva para la interfaz. */
+    /**
+     * Convierte el objeto JSON de una reserva en los datos utilizados por la interfaz.
+     *
+     * @param json objeto JSON recibido de la API
+     * @return reserva con sus datos principales y la posibilidad de cancelarla
+     */
     private Reserva parsearReserva(JsonObject json) {
         return new Reserva(
                 json.get("id").getAsInt(),
@@ -508,7 +654,12 @@ public final class ApiCliente {
         );
     }
 
-    /** Consulta las fichas de socios visibles para ADMIN. */
+    /**
+     * Consulta las fichas de socios disponibles para administración.
+     *
+     * @param token token de la sesión ADMIN
+     * @return operación asíncrona con la lista de socios recibida de la API
+     */
     public CompletableFuture<List<Socio>> listarSocios(String token) {
         HttpRequest peticion = prepararPeticion("/api/admin/socios", token)
                 .GET()
@@ -530,7 +681,12 @@ public final class ApiCliente {
         });
     }
 
-    /** Convierte el JSON de una ficha en un objeto Socio. */
+    /**
+     * Convierte el objeto JSON de una ficha de socio en el modelo de la aplicación.
+     *
+     * @param json objeto JSON recibido de la API
+     * @return ficha de socio con sus datos personales y el estado de la cuenta
+     */
     private Socio parsearSocio(JsonObject json) {
         return new Socio(
                 json.get("id").getAsInt(),
@@ -545,7 +701,13 @@ public final class ApiCliente {
         );
     }
 
-    /** Convierte un bloqueo recibido en JSON en datos para la interfaz. */
+    /**
+     * Convierte el objeto JSON de un bloqueo manual en el modelo de la aplicación.
+     * Admite que la descripción no esté presente o tenga valor null.
+     *
+     * @param json objeto JSON recibido de la API
+     * @return bloqueo con su pista, fecha, horario y descripción
+     */
     private Bloqueo parsearBloqueo(JsonObject json) {
         JsonElement descripcionJson = json.get("descripcion");
         String descripcion = descripcionJson == null || descripcionJson.isJsonNull()

@@ -43,6 +43,17 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
+/**
+ * Muestra la disponibilidad de la fecha elegida y permite reservar una pista.
+ * Presenta solo las franjas cuyo inicio aún no ha pasado, ofrece las duraciones
+ * disponibles y actualiza la disponibilidad después de confirmar una reserva.
+ *
+ * @param sesion sesión del socio que realizará la reserva
+ * @param api cliente utilizado para consultar y crear reservas
+ * @param onVolverCalendario acción que regresa al calendario
+ * @param onSesionInvalida acción que vuelve al login si caduca la sesión
+ * @param fechaInicial fecha cuya disponibilidad se consulta al abrir la pantalla
+ */
 @Composable
 fun ReservasScreen(
     sesion: Sesion,
@@ -60,6 +71,14 @@ fun ReservasScreen(
     var reservando by remember { mutableStateOf(false) }
     var reservaCreada by remember { mutableStateOf<Reserva?>(null) }
 
+    /**
+     * Trata un error de red o de la API producido durante esta pantalla.
+     * Si la sesión ha caducado, solicita volver al login; en otro caso,
+     * prepara el mensaje que se mostrará al socio.
+     *
+     * @param e excepción recibida durante la petición
+     * @param mensajePorDefecto texto utilizado si la excepción no contiene mensaje
+     */
     fun mostrarError(e: IOException, mensajePorDefecto: String) {
         if (e is ApiException && e.estado == 401) {
             onSesionInvalida()

@@ -4,10 +4,19 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Horas de apertura y cierre aplicables a una fecha. */
+/**
+ * Horas de apertura y cierre del club para una fecha.
+ *
+ * @param apertura primera hora disponible
+ * @param cierre   hora de cierre, no disponible como inicio de turno
+ */
 public record HorarioDia(LocalTime apertura, LocalTime cierre) {
 
-    /** Devuelve la hora de inicio de cada turno de una hora. */
+    /**
+     * Genera los inicios de los turnos de una hora entre apertura y cierre.
+     *
+     * @return lista de horas desde apertura, sin incluir cierre
+     */
     public List<LocalTime> turnos() {
 
         List<LocalTime> horas = new ArrayList<>();
@@ -19,7 +28,14 @@ public record HorarioDia(LocalTime apertura, LocalTime cierre) {
         return List.copyOf(horas);
     }
 
-    /** Indica si un bloque de horas completas cabe dentro del horario. */
+    /**
+     * Comprueba si un bloque de horas completas cabe dentro del horario.
+     * El inicio debe ser una hora en punto y el final no puede superar el cierre.
+     *
+     * @param inicio      hora de inicio del bloque
+     * @param numeroHoras duración del bloque en horas
+     * @return true si todo el bloque está dentro del horario
+     */
     public boolean cabe(LocalTime inicio, int numeroHoras) {
 
         if (inicio == null || numeroHoras <= 0) {

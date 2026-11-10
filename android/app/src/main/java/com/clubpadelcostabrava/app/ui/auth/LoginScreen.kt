@@ -25,6 +25,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.size
 import com.clubpadelcostabrava.app.R
 
+/**
+ * Muestra el formulario de acceso del socio.
+ * Recoge correo y contraseña, presenta los mensajes de la operación
+ * y ofrece la entrada a la recuperación de contraseña.
+ *
+ * @param cargando indica si hay un inicio de sesión en curso
+ * @param error mensaje de error que se debe mostrar, o null si no hay error
+ * @param mensaje mensaje informativo que se debe mostrar, si existe
+ * @param onEntrar acción que recibe el correo y la contraseña introducidos
+ * @param onAbrirCodigo acción que abre la pantalla de activación o recuperación
+ */
 @Composable
 fun LoginScreen(
     cargando: Boolean,
@@ -37,7 +48,9 @@ fun LoginScreen(
     var contrasena by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

@@ -9,15 +9,29 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
-/** Accede a los bloqueos y a sus horas ocupadas en la base de datos. */
+/**
+ * Accede a los bloqueos de pista y a sus horas ocupadas en PostgreSQL.
+ */
 @Repository
 public class BloqueoRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public BloqueoRepository(JdbcTemplate jdbcTemplate) { this.jdbcTemplate = jdbcTemplate; }
+    /**
+     * Recibe el componente que ejecuta las consultas SQL.
+     *
+     * @param jdbcTemplate acceso JDBC a la base de datos
+     */
+    public BloqueoRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
-    /** Comprueba que la pista indicada existe. */
+    /**
+     * Comprueba si existe la pista indicada.
+     *
+     * @param pistaId identificador de la pista
+     * @return true si la pista existe
+     */
     public boolean existePista(int pistaId) {
         Boolean resultado = jdbcTemplate.queryForObject(
                 """
@@ -29,7 +43,13 @@ public class BloqueoRepository {
         return Boolean.TRUE.equals(resultado);
     }
 
-    /** Obtiene el inicio de un bloqueo para decidir si aún puede retirarse. */
+    /**
+     * Obtiene la fecha y hora de inicio de un bloqueo para comprobar
+     * si todavía puede retirarse.
+     *
+     * @param id identificador del bloqueo
+     * @return su inicio, o un Optional vacío si no existe
+     */
     public Optional<LocalDateTime> buscarInicioPorId(int id) {
         return jdbcTemplate.query(
                 """
@@ -45,7 +65,12 @@ public class BloqueoRepository {
         ).stream().findFirst();
     }
 
-    /** Lista los bloqueos de un día, ordenados por pista y hora. */
+    /**
+     * Consulta los bloqueos de un día, ordenados por pista y hora de inicio.
+     *
+     * @param fecha fecha que se desea consultar
+     * @return bloqueos de esa fecha
+     */
     public List<BloqueoRespuesta> listarPorFecha(LocalDate fecha) {
         return jdbcTemplate.query(
                 """
@@ -66,7 +91,15 @@ public class BloqueoRepository {
         );
     }
 
-    /** Guarda el bloqueo y devuelve el ID generado por PostgreSQL. */
+    /**
+     * Guarda un bloqueo y obtiene el identificador generado por PostgreSQL.
+     * El servicio lo llama dentro de la transacción que ocupa sus horas.
+     *
+     * @param datos   datos del bloqueo
+     * @param adminId cuenta administradora que lo crea
+     * @return identificador del bloqueo creado
+     * @throws IllegalStateException si la base de datos no devuelve el identificador
+     */
     public int insertarBloqueo(CrearBloqueoPeticion datos, int adminId) {
         Integer id = jdbcTemplate.queryForObject(
                 """
@@ -88,7 +121,16 @@ public class BloqueoRepository {
         return id;
     }
 
-    /** Ocupa una hora; la clave única impide compartirla con otra reserva o bloqueo. */
+    /**
+     * Ocupa una hora de pista para el bloqueo indicado.
+     * La clave primaria de ocupacion impide que esa misma pista, fecha
+     * y hora pertenezca también a otra reserva o bloqueo.
+     *
+     * @param pistaId   identificador de la pista
+     * @param fecha     fecha de la ocupación
+     * @param hora      hora de inicio del turno
+     * @param bloqueoId identificador del bloqueo
+     */
     public void insertarOcupacion(int pistaId, LocalDate fecha, LocalTime hora, int bloqueoId) {
         jdbcTemplate.update(
                 """
@@ -102,7 +144,12 @@ public class BloqueoRepository {
         );
     }
 
-    /** Elimina el bloqueo y devuelve el número de filas eliminadas. */
+    /**
+     * Elimina un bloqueo por su identificador.
+     *
+     * @param id identificador del bloqueo
+     * @return número de filas eliminadas
+     */
     public int eliminarPorId(int id) {
         return jdbcTemplate.update(
                 "DELETE FROM bloqueo WHERE id = ?",

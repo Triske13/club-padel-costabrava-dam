@@ -1,4 +1,10 @@
 package com.clubpadelcostabrava.server.api;
 
-/** Formato común del código y mensaje que devuelve la API ante un error. */
-public record ErrorApi(String codigo, String mensaje) {}
+/**
+ * Error enviado por la API en las respuestas HTTP.
+ *
+ * @param codigo  identificador estable del tipo de error
+ * @param mensaje explicación legible para el usuario
+ */
+public record ErrorApi(String codigo, String mensaje) {
+}

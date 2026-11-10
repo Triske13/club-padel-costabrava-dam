@@ -11,18 +11,31 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 
-/** Expone a administración las operaciones HTTP para gestionar bloqueos. */
+/**
+ * Expone a administración las rutas HTTP para consultar,
+ * crear y retirar bloqueos de pista.
+ */
 @RestController
 @RequestMapping("/api/admin/bloqueos")
 public class BloqueoController {
 
     private final BloqueoService servicio;
 
+    /**
+     * Recibe el servicio que aplica las reglas de los bloqueos.
+     *
+     * @param servicio operaciones de bloqueo
+     */
     public BloqueoController(BloqueoService servicio) {
         this.servicio = servicio;
     }
 
-    /** Consulta los bloqueos de la fecha indicada en la URL. */
+    /**
+     * Consulta los bloqueos de la fecha indicada.
+     *
+     * @param fecha fecha en formato AAAA-MM-DD
+     * @return 200 con los bloqueos del día, o 400 si falta o no es válida
+     */
     @GetMapping
     public ResponseEntity<?> listar(
             @RequestParam(value = "fecha", required = false) String fecha
@@ -41,7 +54,13 @@ public class BloqueoController {
         }
     }
 
-    /** Crea un bloqueo usando la identidad del administrador autenticado. */
+    /**
+     * Crea un bloqueo a nombre de la cuenta administradora autenticada.
+     *
+     * @param datos          pista, fecha, hora, duración y descripción solicitadas
+     * @param authentication sesión de la cuenta administradora
+     * @return 201 con el bloqueo creado, o un error HTTP si no puede crearse
+     */
     @PostMapping
     public ResponseEntity<?> crear(
             @RequestBody(required = false) CrearBloqueoPeticion datos,
@@ -70,7 +89,13 @@ public class BloqueoController {
         }
     }
 
-    /** Retira un bloqueo futuro y responde sin contenido si se elimina. */
+    /**
+     * Retira un bloqueo que aún no ha comenzado.
+     *
+     * @param id identificador del bloqueo
+     * @return 204 si se retiró, 404 si no existe
+     * o 409 si ya había comenzado
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> retirar(@PathVariable("id") int id) {
         try {

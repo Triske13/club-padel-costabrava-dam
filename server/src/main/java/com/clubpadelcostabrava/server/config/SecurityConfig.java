@@ -15,11 +15,25 @@ import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
-/** Define la autenticación, los permisos por ruta y el codificador de contraseñas. */
+/**
+ * Configura la autenticación por token, los permisos de las rutas
+ * y el codificador de contraseñas del servidor.
+ */
 @Configuration
 public class SecurityConfig {
 
-    /** Configura una API sin sesión HTTP y coloca el filtro de tokens antes de autorizar. */
+    /**
+     * Configura la API sin sesión HTTP y coloca el filtro Bearer
+     * antes de la comprobación de permisos.
+     * Permite las rutas públicas, exige ADMIN en /api/admin/**
+     * y USER en /api/mis-reservas/**.
+     *
+     * @param http     configuración de seguridad HTTP
+     * @param sesiones almacén de tokens
+     * @param cuentas  comprobación del estado de las cuentas
+     * @return cadena de filtros de seguridad
+     * @throws Exception si Spring Security no puede construir la cadena
+     */
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -69,7 +83,11 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Expone PBKDF2 para crear hashes y verificar contraseñas en toda la aplicación. */
+    /**
+     * Proporciona PBKDF2 para proteger y comprobar contraseñas y códigos.
+     *
+     * @return codificador de contraseñas compartido por la aplicación
+     */
     @Bean
     PasswordEncoder passwordEncoder() {
         return Pbkdf2PasswordEncoder.defaultsForSpringSecurity_v5_8();

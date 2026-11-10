@@ -13,15 +13,28 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
-/** Controla el formulario de acceso de administración. */
+/**
+ * Controla el acceso a la aplicación de administración.
+ * Recoge las credenciales, comprueba que la sesión obtenida sea ADMIN
+ * y abre la pantalla principal cuando el inicio de sesión tiene éxito.
+ */
 public class LoginController {
 
-    @FXML private TextField correoField;
-    @FXML private PasswordField contrasenaField;
-    @FXML private Button entrarButton;
-    @FXML private Label mensajeLabel;
+    @FXML
+    private TextField correoField;
+    @FXML
+    private PasswordField contrasenaField;
+    @FXML
+    private Button entrarButton;
+    @FXML
+    private Label mensajeLabel;
     private final ApiCliente api = new ApiCliente();
 
+    /**
+     * Valida que se hayan escrito el correo y la contraseña y solicita el inicio
+     * de sesión sin bloquear la interfaz. Si la cuenta es ADMIN, abre la pantalla
+     * principal; en caso de error, muestra el mensaje en el formulario.
+     */
     @FXML
     private void onEntrar() {
         String correo = correoField.getText().strip();
@@ -77,6 +90,10 @@ public class LoginController {
         );
     }
 
+    /**
+     * Sustituye el formulario de acceso por la pantalla para solicitar un código
+     * y establecer o recuperar la contraseña.
+     */
     @FXML
     private void onRecuperar() {
         try {
@@ -97,7 +114,9 @@ public class LoginController {
         }
     }
 
-    /** Cierra la aplicación desde la pantalla de acceso. */
+    /**
+     * Cierra la aplicación desde la pantalla de acceso.
+     */
     @FXML
     private void onSalir() {
         Platform.exit();

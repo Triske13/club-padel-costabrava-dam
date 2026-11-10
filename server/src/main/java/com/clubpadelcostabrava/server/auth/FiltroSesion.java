@@ -14,19 +14,37 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/** Lee el token Bearer y prepara la identidad antes de comprobar permisos. */
+/**
+ * Lee el token Bearer de cada petición protegida y prepara
+ * la identidad y el rol para Spring Security.
+ */
 public class FiltroSesion extends OncePerRequestFilter {
 
     private final SesionService sesiones;
     private final CuentaRepository cuentas;
 
-    /** Recibe el almacén de sesiones y el acceso a las cuentas. */
+    /**
+     * Recibe el almacén de sesiones y el acceso a cuentas.
+     *
+     * @param sesiones búsqueda e invalidación de tokens
+     * @param cuentas  comprobación de que la cuenta sigue habilitada
+     */
     public FiltroSesion(SesionService sesiones, CuentaRepository cuentas) {
         this.sesiones = sesiones;
         this.cuentas = cuentas;
     }
 
-    /** Comprueba el token y la cuenta; si son válidos, continúa la petición autenticada. */
+    /**
+     * Comprueba que el token exista, no haya caducado y pertenezca
+     * a una cuenta todavía habilitada. Si es válido, establece
+     * la autenticación durante el resto de la petición.
+     *
+     * @param request  petición HTTP recibida
+     * @param response respuesta HTTP
+     * @param chain    cadena de filtros que continúa la petición
+     * @throws ServletException si falla el procesamiento del filtro
+     * @throws IOException      si falla la lectura o escritura HTTP
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -75,7 +93,12 @@ public class FiltroSesion extends OncePerRequestFilter {
         }
     }
 
-    /** Excluye del filtro las rutas públicas que no requieren un token previo. */
+    /**
+     * Omite el filtro de sesión en las rutas públicas.
+     *
+     * @param request petición HTTP recibida
+     * @return true si la ruta no requiere comprobar un token previo
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String ruta = request.getServletPath();
@@ -86,7 +109,12 @@ public class FiltroSesion extends OncePerRequestFilter {
                 || "/api/auth/contrasena".equals(ruta);
     }
 
-    /** Devuelve el error JSON común para un token inválido o una cuenta inhabilitada. */
+    /**
+     * Escribe el error JSON y el estado HTTP 401 de una sesión inválida.
+     *
+     * @param response respuesta HTTP que se enviará al cliente
+     * @throws IOException si falla la escritura de la respuesta
+     */
     private void responderSesionInvalida(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");

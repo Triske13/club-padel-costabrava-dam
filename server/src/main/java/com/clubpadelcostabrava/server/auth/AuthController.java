@@ -15,7 +15,10 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Gestiona el acceso por contraseña o código y el cierre de sesión. */
+/**
+ * Expone las operaciones de autenticación, códigos temporales,
+ * establecimiento de contraseña y cierre de sesión.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -27,7 +30,17 @@ public class AuthController {
     private final LimiteCodigo limiteCodigo;
     private final CodigoTemporalService codigoTemporalService;
 
-    /** Recibe los componentes necesarios para iniciar sesión y gestionar contraseñas. */
+    /**
+     * Recibe los componentes necesarios para comprobar cuentas,
+     * limitar intentos y gestionar sesiones y códigos.
+     *
+     * @param cuentas               acceso a las cuentas
+     * @param passwordEncoder       comprobación de contraseñas
+     * @param sesiones              creación e invalidación de sesiones
+     * @param limiteLogin           límite de intentos de acceso
+     * @param limiteCodigo          límite de solicitudes de código
+     * @param codigoTemporalService generación y comprobación de códigos
+     */
     public AuthController(
             CuentaRepository cuentas,
             PasswordEncoder passwordEncoder,
@@ -44,7 +57,15 @@ public class AuthController {
         this.codigoTemporalService = codigoTemporalService;
     }
 
-    /** Valida las credenciales, aplica los límites de intentos y devuelve un token si son correctas. */
+    /**
+     * Comprueba las credenciales y el estado de la cuenta.
+     * Aplica límites por correo e IP antes de crear una sesión.
+     *
+     * @param peticion correo y contraseña enviados por el cliente
+     * @param request  petición HTTP de la que se obtiene la IP
+     * @return 200 con token, rol y caducidad; 401 si las credenciales
+     * no son válidas o 429 si se superó el límite
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestBody(required = false) LoginPeticion peticion,
@@ -99,8 +120,14 @@ public class AuthController {
     }
 
     /**
-     * Gestiona la solicitud de un código sin revelar si el correo pertenece
-     * a una cuenta que puede recibirlo.
+     * Solicita un código temporal para activar o recuperar una cuenta.
+     * Responde de forma genérica para no revelar si el correo existe
+     * o puede recibir el código. Limita las solicitudes por correo e IP.
+     *
+     * @param peticion correo al que se solicita el código
+     * @param request  petición HTTP de la que se obtiene la IP
+     * @return 202 para una solicitud admitida o descartada de forma
+     * discreta, 400 si falta el correo o 429 si se limita la IP
      */
     @PostMapping("/codigo")
     public ResponseEntity<?> codigo(
@@ -135,7 +162,7 @@ public class AuthController {
 
         if ("USER".equals(cuenta.rol())
                 && !"ACTIVO".equals(cuenta.estadoSocio())) {
-                    return ResponseEntity.accepted().build();
+            return ResponseEntity.accepted().build();
         }
 
         codigoTemporalService.solicitarCodigo(cuenta.id(), cuenta.correo());
@@ -144,8 +171,13 @@ public class AuthController {
     }
 
     /**
-     * Comprueba el código y, si se cambia la contraseña, invalida las sesiones
-     * y elimina la pausa de acceso asociada al correo.
+     * Establece una contraseña mediante un código temporal válido.
+     * Después invalida las sesiones de la cuenta y reinicia
+     * el límite de intentos de login asociado al correo.
+     *
+     * @param peticion correo, código y nueva contraseña
+     * @return 204 si se estableció la contraseña,
+     * o 400 si los datos o el código no son válidos
      */
     @PostMapping("/contrasena")
     public ResponseEntity<?> contrasena(
@@ -154,7 +186,7 @@ public class AuthController {
         if (peticion == null
                 || peticion.correo() == null || peticion.correo().isBlank()
                 || peticion.codigo() == null || peticion.codigo().isBlank()
-                || peticion.nuevaContrasena() == null){
+                || peticion.nuevaContrasena() == null) {
             return ResponseEntity.badRequest()
                     .body(new ErrorApi("DATOS_INVALIDOS", "Datos no válidos."));
         }
@@ -194,7 +226,12 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Cierra la sesión asociada al token usado en esta petición. */
+    /**
+     * Invalida la sesión identificada por el token Bearer de la petición.
+     *
+     * @param request petición HTTP que contiene la cabecera Authorization
+     * @return 204 sin cuerpo tras cerrar la sesión
+     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         String cabecera = request.getHeader("Authorization");
@@ -205,7 +242,11 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Construye la respuesta común cuando una cuenta o IP está temporalmente pausada. */
+    /**
+     * Construye la respuesta común para un acceso temporalmente limitado.
+     *
+     * @return error HTTP 429 con el tiempo de espera indicado al cliente
+     */
     private ResponseEntity<ErrorApi> demasiadosIntentos() {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new ErrorApi(
@@ -214,8 +255,22 @@ public class AuthController {
                 ));
     }
 
-    /** Datos JSON que envía el cliente para iniciar sesión. */
-    public record LoginPeticion(String correo, String contrasena) {}
-    /** Datos que recibe el cliente después de un inicio de sesión correcto. */
-    public record LoginRespuesta(String token, String rol, Instant expiraEn) {}
+    /**
+     * Credenciales enviadas por el cliente para iniciar sesión.
+     *
+     * @param correo     dirección de correo de la cuenta
+     * @param contrasena contraseña introducida
+     */
+    public record LoginPeticion(String correo, String contrasena) {
+    }
+
+    /**
+     * Datos devueltos tras un inicio de sesión correcto.
+     *
+     * @param token    token Bearer de la sesión
+     * @param rol      rol de la cuenta autenticada
+     * @param expiraEn instante en que caduca la sesión
+     */
+    public record LoginRespuesta(String token, String rol, Instant expiraEn) {
+    }
 }

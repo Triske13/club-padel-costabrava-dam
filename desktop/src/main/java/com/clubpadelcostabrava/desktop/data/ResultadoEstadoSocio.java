@@ -1,4 +1,11 @@
 package com.clubpadelcostabrava.desktop.data;
 
-/** Respuesta del servidor tras cambiar el estado de un socio. */
-public record ResultadoEstadoSocio(String estado, int reservasCanceladas, String avisoCorreo) {}
+/**
+ * Resultado del cambio de estado de un socio.
+ *
+ * @param estado             estado del socio después del cambio
+ * @param reservasCanceladas número de reservas canceladas al inactivarlo
+ * @param avisoCorreo        resultado del aviso enviado por correo
+ */
+public record ResultadoEstadoSocio(String estado, int reservasCanceladas, String avisoCorreo) {
+}

@@ -9,20 +9,35 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Calcula el detalle diario y el resumen mensual de disponibilidad. */
+/**
+ * Calcula la disponibilidad diaria y el resumen mensual del calendario.
+ * Combina el horario de apertura con las ocupaciones de cada pista.
+ */
 @Service
 public class DisponibilidadService {
 
     private final DisponibilidadRepository repositorio;
     private final HorarioService horarios;
 
-
+    /**
+     * Recibe el acceso a pistas y ocupaciones y el cálculo de horarios.
+     *
+     * @param repositorio consultas de pistas y ocupaciones
+     * @param horarios    cálculo del horario aplicable a una fecha
+     */
     public DisponibilidadService(DisponibilidadRepository repositorio, HorarioService horarios) {
         this.repositorio = repositorio;
         this.horarios = horarios;
     }
 
-    // Devuelve true desde hoy hasta hoy + 13 días, ambos incluidos.
+    /**
+     * Comprueba si una fecha está entre hoy y los 13 días siguientes,
+     * con ambos extremos incluidos.
+     *
+     * @param fecha fecha que se comprueba
+     * @param hoy   fecha actual de referencia
+     * @return true si la fecha está dentro del plazo de reserva
+     */
     private boolean dentroPlazo(LocalDate fecha, LocalDate hoy) {
 
         if (fecha.isBefore(hoy) || fecha.isAfter(hoy.plusDays(13))) {
@@ -33,7 +48,18 @@ public class DisponibilidadService {
 
     }
 
-    /** Construye las franjas de las cuatro pistas sin mostrar datos de los titulares. */
+    /**
+     * Construye las franjas de todas las pistas para una fecha, sin mostrar
+     * datos de los titulares de las reservas.
+     * USER solo puede consultar el plazo de reserva; ADMIN puede consultar
+     * cualquier fecha que no sea pasada.
+     *
+     * @param fecha   fecha que se desea consultar
+     * @param esAdmin indica si la consulta procede de administración
+     * @return horario, pistas, estados y duraciones disponibles de ese día
+     * @throws IllegalArgumentException si falta la fecha o está fuera
+     *                                  del plazo de consulta del usuario
+     */
     public DisponibilidadDiaRespuesta consultarDia(LocalDate fecha, boolean esAdmin) {
 
         if (fecha == null) {
@@ -74,7 +100,7 @@ public class DisponibilidadService {
 
                 List<Integer> duraciones = calcularDuraciones(pista.id(), fecha, hora, ahora, horario, dentroPlazoReserva, ocupaciones);
 
-                franjas.add(new FranjaRespuesta( hora.format(formatoHora), estado, duraciones));
+                franjas.add(new FranjaRespuesta(hora.format(formatoHora), estado, duraciones));
             }
 
             pistasRespuesta.add(new PistaDisponibilidadRespuesta(
@@ -92,7 +118,14 @@ public class DisponibilidadService {
         );
     }
 
-    /** Resume todas las fechas del mes según el rol y las horas futuras libres. */
+    /**
+     * Resume cada fecha del mes según el rol y las horas futuras libres.
+     *
+     * @param mes     mes que se desea consultar
+     * @param esAdmin indica si la consulta procede de administración
+     * @return días del mes con sus indicadores de disponibilidad
+     * @throws IllegalArgumentException si no se indica un mes
+     */
     public CalendarioMesRespuesta consultarMes(YearMonth mes, boolean esAdmin) {
         if (mes == null) {
             throw new IllegalArgumentException("El mes es obligatorio.");
@@ -119,7 +152,16 @@ public class DisponibilidadService {
         );
     }
 
-    /** Distingue un día completo de hoy sin turnos futuros por comenzar. */
+    /**
+     * Calcula si un día es consultable, está completo o ya no tiene
+     * turnos futuros por comenzar.
+     *
+     * @param fecha       día que se resume
+     * @param consultable indica si el rol puede consultar ese día
+     * @param ahora       fecha y hora de referencia
+     * @param pistas      pistas existentes
+     * @return indicadores del día para el calendario
+     */
     private DiaCalendarioRespuesta resumirDia(
             LocalDate fecha,
             boolean consultable,
@@ -164,7 +206,18 @@ public class DisponibilidadService {
         );
     }
 
-    /** Conserva el estado de una ocupación aunque su hora ya haya comenzado. */
+    /**
+     * Obtiene el estado de una hora de pista.
+     * Si existe una ocupación, conserva RESERVADA o BLOQUEADA aunque
+     * la hora ya haya comenzado; en otro caso devuelve PASADA o LIBRE.
+     *
+     * @param pistaId     identificador de la pista
+     * @param fecha       fecha de la franja
+     * @param hora        hora de inicio
+     * @param ahora       fecha y hora de referencia
+     * @param ocupaciones ocupaciones registradas para ese día
+     * @return estado de la franja
+     */
     private String estadoFranja(
             int pistaId,
             LocalDate fecha,
@@ -188,7 +241,19 @@ public class DisponibilidadService {
         return "LIBRE";
     }
 
-    /** Ofrece una o dos horas solo si caben, son futuras y están libres. */
+    /**
+     * Determina si desde una franja pueden reservarse una o dos horas.
+     * Comprueba el plazo, el horario y que todas las horas estén libres.
+     *
+     * @param pistaId     identificador de la pista
+     * @param fecha       fecha de la franja
+     * @param hora        hora de inicio
+     * @param ahora       fecha y hora de referencia
+     * @param horario     horario aplicable al día
+     * @param dentroPlazo indica si la fecha está dentro del plazo de reserva
+     * @param ocupaciones ocupaciones registradas para ese día
+     * @return lista vacía, [1] o [1, 2] según las duraciones posibles
+     */
     private List<Integer> calcularDuraciones(
             int pistaId,
             LocalDate fecha,

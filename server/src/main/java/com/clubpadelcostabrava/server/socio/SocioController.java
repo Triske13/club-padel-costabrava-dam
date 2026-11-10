@@ -14,7 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** Expone a los administradores las operaciones HTTP de gestión de socios. */
+/**
+ * Expone a administración las operaciones HTTP de gestión de socios.
+ * El acceso a estas rutas requiere el rol ADMIN.
+ */
 @RestController
 @RequestMapping("/api/admin/socios")
 public class SocioController {
@@ -23,6 +26,15 @@ public class SocioController {
     private final SesionService sesiones;
     private final AvisoCancelacionService avisos;
 
+    /**
+     * Recibe los componentes de consulta, gestión de socios,
+     * sesiones y avisos por correo.
+     *
+     * @param socios   consultas de fichas de socios
+     * @param servicio reglas de gestión de socios
+     * @param sesiones gestión de sesiones activas
+     * @param avisos   envío de avisos por cancelaciones
+     */
     public SocioController(SocioRepository socios, SocioService servicio, SesionService sesiones, AvisoCancelacionService avisos) {
         this.socios = socios;
         this.servicio = servicio;
@@ -30,7 +42,12 @@ public class SocioController {
         this.avisos = avisos;
     }
 
-    /** Lista todos los socios o filtra por identificador, nombre o correo. */
+    /**
+     * Lista los socios o filtra por identificador, nombre o correo.
+     *
+     * @param buscar criterio opcional de búsqueda
+     * @return fichas que cumplen el criterio
+     */
     @GetMapping
     public List<SocioRespuesta> listar(
             @RequestParam(value = "buscar", required = false) String buscar
@@ -38,7 +55,12 @@ public class SocioController {
         return socios.buscar(buscar);
     }
 
-    /** Devuelve la ficha solicitada o un error 404 si no existe. */
+    /**
+     * Consulta la ficha de un socio por identificador.
+     *
+     * @param id identificador del socio
+     * @return 200 con la ficha, o 404 si no existe
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> detalle(@PathVariable("id") int id) {
         Optional<SocioRespuesta> encontrado = socios.buscarPorId(id);
@@ -51,7 +73,14 @@ public class SocioController {
         return ResponseEntity.ok(encontrado.get());
     }
 
-    /** Actualiza los datos personales y traduce los errores de validación a HTTP. */
+    /**
+     * Actualiza los datos personales de un socio sin cambiar su correo.
+     *
+     * @param id    identificador del socio
+     * @param datos nuevos datos personales
+     * @return 200 con la ficha actualizada, 404 si no existe
+     * o 400 si los datos no son válidos
+     */
     @PutMapping("/{id}")
     public ResponseEntity<?> editar(
             @PathVariable("id") int id,
@@ -72,7 +101,15 @@ public class SocioController {
         }
     }
 
-    /** Cambia el correo tras verificar la contraseña del administrador autenticado. */
+    /**
+     * Cambia el correo de un socio tras comprobar la contraseña de ADMIN.
+     *
+     * @param id             identificador del socio
+     * @param datos          nuevo correo y contraseña de confirmación
+     * @param authentication sesión de la cuenta administradora
+     * @return 200 con el nuevo correo, 401 si la contraseña es incorrecta,
+     * 404 si el socio no existe o 409 si el correo ya está en uso
+     */
     @PutMapping("/{id}/correo")
     public ResponseEntity<?> cambiarCorreo(
             @PathVariable("id") int id,
@@ -103,7 +140,13 @@ public class SocioController {
         }
     }
 
-    /** Crea la ficha y su cuenta USER todavía sin contraseña. */
+    /**
+     * Crea la ficha de un socio y su cuenta USER sin contraseña inicial.
+     *
+     * @param datos datos personales y correo del nuevo socio
+     * @return 201 con la ficha creada, 400 si los datos no son válidos
+     * o 409 si el correo ya pertenece a otra cuenta
+     */
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody(required = false) CrearSocioPeticion datos) {
         try {
@@ -118,7 +161,17 @@ public class SocioController {
         }
     }
 
-    /** Cambia el estado; después invalida sesiones y avisa por correo si hubo cancelaciones. */
+    /**
+     * Activa o inactiva un socio. Tras guardar el cambio, invalida
+     * sus sesiones e intenta avisar por correo si se cancelaron reservas.
+     * Un fallo del correo no deshace la inactivación ni las cancelaciones.
+     *
+     * @param id             identificador del socio
+     * @param datos          nuevo estado solicitado
+     * @param authentication sesión de la cuenta administradora
+     * @return 200 con el estado, el número de reservas canceladas y
+     * el resultado del aviso; 404 si el socio no existe
+     */
     @PutMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstado(
             @PathVariable("id") int id,

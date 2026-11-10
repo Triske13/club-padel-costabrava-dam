@@ -8,20 +8,35 @@ import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 
-/** Crea la primera cuenta ADMIN al arrancar el servidor, si aún no existe. */
+/**
+ * Crea la primera cuenta ADMIN al arrancar el servidor,
+ * únicamente si todavía no existe ninguna.
+ */
 @Component
 public class AdminInicial implements ApplicationRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
 
-    /** Recibe el acceso a la base de datos y el codificador de contraseñas. */
+    /**
+     * Recibe el acceso a la base de datos y el codificador de contraseñas.
+     *
+     * @param jdbcTemplate    acceso JDBC a la base de datos
+     * @param passwordEncoder protección de la contraseña inicial
+     */
     public AdminInicial(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
     }
 
-    /** Comprueba si existe un ADMIN y, si falta, lo crea con las variables de entorno. */
+    /**
+     * Comprueba si ya existe una cuenta ADMIN. Si no existe, lee
+     * APP_ADMIN_EMAIL y APP_ADMIN_PASSWORD, valida sus valores
+     * y crea la cuenta inicial.
+     *
+     * @param args argumentos de arranque recibidos de Spring Boot
+     * @throws IllegalStateException si falta o no es válida la configuración inicial
+     */
     @Override
     public void run(ApplicationArguments args) {
         Integer cantidad = jdbcTemplate.queryForObject(

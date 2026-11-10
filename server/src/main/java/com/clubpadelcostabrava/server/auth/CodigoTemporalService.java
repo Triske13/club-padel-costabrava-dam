@@ -16,7 +16,10 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Genera y envía códigos temporales y comprueba cambios de contraseña con ellos. */
+/**
+ * Genera y envía códigos temporales y comprueba su uso
+ * para establecer o recuperar contraseñas.
+ */
 @Service
 public class CodigoTemporalService {
     private final CodigoTemporalRepository codigoTemporal;
@@ -28,7 +31,16 @@ public class CodigoTemporalService {
     private static final Logger log =
             LoggerFactory.getLogger(CodigoTemporalService.class);
 
-    /** Recibe los repositorios, el codificador de contraseñas y el servicio de correo. */
+    /**
+     * Recibe el acceso a códigos y cuentas, el codificador de contraseñas
+     * y el servicio de correo.
+     *
+     * @param codigoTemporal  almacenamiento de códigos temporales
+     * @param cuentas         acceso a las cuentas
+     * @param passwordEncoder protección y comprobación de códigos y contraseñas
+     * @param javaMailSender  envío de mensajes por SMTP
+     * @param remitente       dirección desde la que se envían los mensajes
+     */
     public CodigoTemporalService(
             CodigoTemporalRepository codigoTemporal,
             CuentaRepository cuentas,
@@ -44,16 +56,22 @@ public class CodigoTemporalService {
     }
 
     /**
-     * Comprueba la vigencia y los intentos del código. Si es correcto, guarda
-     * el nuevo hash y consume el código en la misma transacción.
-     * Devuelve el ID de la cuenta solo cuando el cambio se completa.
+     * Comprueba un código vigente con menos de tres intentos fallidos.
+     * Si es correcto, guarda el hash de la nueva contraseña y consume
+     * el código dentro de una misma transacción.
+     *
+     * @param correo          correo normalizado de la cuenta
+     * @param codigo          código introducido por el usuario
+     * @param nuevaContrasena nueva contraseña previamente validada
+     * @return identificador de la cuenta si se completó el cambio,
+     * o un Optional vacío si no se admite el código
      */
     @Transactional
     public Optional<Integer> establecerContrasena(
             String correo, String codigo, String nuevaContrasena
     ) {
-       CuentaRepository.CuentaAcceso cuenta =
-               cuentas.buscarPorCorreo(correo).orElse(null);
+        CuentaRepository.CuentaAcceso cuenta =
+                cuentas.buscarPorCorreo(correo).orElse(null);
 
         if (cuenta == null) {
             return Optional.empty();
@@ -97,14 +115,24 @@ public class CodigoTemporalService {
         return Optional.of(cuenta.id());
     }
 
-    /** Genera seis cifras aleatorias, conservando los posibles ceros iniciales. */
+    /**
+     * Genera un código aleatorio de seis cifras.
+     *
+     * @return código como texto, incluidos los posibles ceros iniciales
+     */
     private String generarCodigo() {
         int numero = secureRandom.nextInt(1_000_000);
 
         return String.format(Locale.ROOT, "%06d", numero);
     }
 
-    /** Guarda el hash de un código nuevo y devuelve el código para enviarlo. */
+    /**
+     * Genera un código y guarda únicamente su hash en la base de datos.
+     * Un código anterior de la misma cuenta queda sustituido.
+     *
+     * @param cuentaId identificador de la cuenta
+     * @return código sin proteger para enviarlo por correo
+     */
     private String generarYGuardar(int cuentaId) {
         String codigo = generarCodigo();
         String codigoProtegido = passwordEncoder.encode(codigo);
@@ -115,8 +143,11 @@ public class CodigoTemporalService {
     }
 
     /**
-     * Genera un código para la cuenta e intenta enviarlo al correo indicado.
-     * Registra el fallo si el proveedor de correo rechaza el envío.
+     * Genera un código temporal e intenta enviarlo al destinatario.
+     * Si falla el proveedor de correo, registra el fallo sin propagarlo.
+     *
+     * @param cuentaId     identificador de la cuenta
+     * @param destinatario correo al que se intenta enviar el código
      */
     public void solicitarCodigo(int cuentaId, String destinatario) {
         String codigo = generarYGuardar(cuentaId);

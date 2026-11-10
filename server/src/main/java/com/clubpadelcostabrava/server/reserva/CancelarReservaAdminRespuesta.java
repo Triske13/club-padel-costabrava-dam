@@ -1,4 +1,11 @@
 package com.clubpadelcostabrava.server.reserva;
 
-/** Reserva cancelada y resultado del intento de aviso por correo. */
-public record CancelarReservaAdminRespuesta(ReservaRespuesta reserva, String avisoCorreo) {}
+/**
+ * Resultado de una cancelación administrativa y del intento de aviso.
+ *
+ * @param reserva     reserva ya cancelada
+ * @param avisoCorreo ACEPTADO si el servidor de correo aceptó el envío,
+ *                    o FALLIDO si no pudo enviarse
+ */
+public record CancelarReservaAdminRespuesta(ReservaRespuesta reserva, String avisoCorreo) {
+}

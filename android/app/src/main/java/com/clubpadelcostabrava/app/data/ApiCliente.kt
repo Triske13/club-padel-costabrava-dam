@@ -11,9 +11,23 @@ import java.time.LocalDate
 import org.json.JSONArray
 import java.time.YearMonth
 
+/**
+ * Comunica la aplicación Android con la API del servidor.
+ * Ejecuta las peticiones de red en el contexto de entrada y salida,
+ * comprueba los estados HTTP y convierte las respuestas JSON en modelos
+ * utilizados por las pantallas.
+ */
 class ApiCliente {
 
-    /** Prepara una petición HTTP al servidor. */
+    /**
+     * Prepara una conexión HTTP con la ruta, el método, los tiempos de espera
+     * y las cabeceras comunes. Añade el token si la ruta requiere autenticación.
+     *
+     * @param ruta ruta de la API que se añade a la URL base
+     * @param metodo método HTTP que utilizará la petición
+     * @param token token de sesión, o null para una ruta pública
+     * @return conexión HTTP preparada para enviar la petición
+     */
     private fun abrirConexion(
         ruta: String,
         metodo: String,
@@ -31,7 +45,16 @@ class ApiCliente {
         }
     }
 
-    /** Lee la respuesta y convierte un error HTTP en un mensaje útil. */
+    /**
+     * Lee el cuerpo de una respuesta HTTP y comprueba su estado.
+     * Si el estado no es el esperado, extrae el mensaje devuelto por la API
+     * y lo convierte en una excepción.
+     *
+     * @param conexion conexión que contiene la respuesta del servidor
+     * @param estadoEsperado código HTTP que indica éxito para esta operación
+     * @return cuerpo de la respuesta correcta como texto
+     * @throws ApiException si el servidor devuelve otro estado HTTP
+     */
     private fun leerRespuesta(
         conexion: HttpURLConnection,
         estadoEsperado: Int
@@ -60,7 +83,14 @@ class ApiCliente {
         return texto
     }
 
-    /** Envía las credenciales y devuelve la sesión recibida. */
+    /**
+     * Envía el correo y la contraseña al servidor para iniciar sesión.
+     * La petición se realiza fuera del hilo principal de Android.
+     *
+     * @param correo correo de la cuenta
+     * @param contrasena contraseña introducida
+     * @return sesión con el token, el rol y su fecha de caducidad
+     */
     suspend fun iniciarSesion(correo: String, contrasena: String): Sesion =
         withContext(Dispatchers.IO) {
             val conexion = abrirConexion("/api/auth/login", "POST")
@@ -91,7 +121,11 @@ class ApiCliente {
             }
         }
 
-    /** Invalida en el servidor el token de la sesión actual. */
+    /**
+     * Solicita al servidor que invalide el token de la sesión actual.
+     *
+     * @param token token de la sesión que se quiere cerrar
+     */
     suspend fun cerrarSesion(token: String) {
         withContext(Dispatchers.IO) {
             val conexion = abrirConexion("/api/auth/logout", "POST", token)
@@ -104,7 +138,12 @@ class ApiCliente {
         }
     }
 
-    /** Solicita un código para activar la cuenta o recuperar la contraseña. */
+    /**
+     * Solicita un código para activar la cuenta o recuperar la contraseña.
+     * La respuesta de la API no revela si el correo corresponde a una cuenta.
+     *
+     * @param correo correo para el que se solicita el código
+     */
     suspend fun solicitarCodigo(correo: String) {
         withContext(Dispatchers.IO) {
             val conexion = abrirConexion("/api/auth/codigo", "POST")
@@ -131,7 +170,13 @@ class ApiCliente {
         }
     }
 
-    /** Usa el código recibido para establecer o recuperar la contraseña. */
+    /**
+     * Utiliza el código recibido por correo para establecer una contraseña nueva.
+     *
+     * @param correo correo de la cuenta
+     * @param codigo código de seguridad recibido
+     * @param nuevaContrasena contraseña que se quiere establecer
+     */
     suspend fun establecerContrasena(
         correo: String,
         codigo: String,
@@ -164,7 +209,13 @@ class ApiCliente {
         }
     }
 
-    /** Cambia la contraseña de la cuenta autenticada. */
+    /**
+     * Cambia la contraseña de la cuenta autenticada mediante su contraseña actual.
+     *
+     * @param token token de la sesión actual
+     * @param contrasenaActual contraseña vigente de la cuenta
+     * @param nuevaContrasena contraseña que la sustituirá
+     */
     suspend fun cambiarContrasena(
         token: String,
         contrasenaActual: String,
@@ -200,7 +251,13 @@ class ApiCliente {
         }
     }
 
-    /** Convierte el JSON de disponibilidad en objetos de la aplicación. */
+    /**
+     * Convierte la disponibilidad diaria recibida en JSON en los modelos
+     * de día, pistas y franjas utilizados por la aplicación.
+     *
+     * @param json respuesta JSON de disponibilidad de una fecha
+     * @return disponibilidad del día con todas sus pistas y horas
+     */
     private fun parsearDisponibilidad(json: JSONObject): DisponibilidadDia {
         val pistasJson = json.getJSONArray("pistas")
 
@@ -239,7 +296,13 @@ class ApiCliente {
         )
     }
 
-    /** Convierte la respuesta mensual de la API en objetos del calendario. */
+    /**
+     * Convierte el resumen mensual de la API en un calendario con el estado
+     * de cada fecha.
+     *
+     * @param json respuesta JSON del calendario mensual
+     * @return mes y lista de días con sus indicadores de disponibilidad
+     */
     private fun parsearCalendario(json: JSONObject): CalendarioMes {
         val diasJson = json.getJSONArray("dias")
 
@@ -260,8 +323,21 @@ class ApiCliente {
         )
     }
 
-    /** Convierte el JSON de una reserva en un objeto de la aplicación. */
+    /**
+     * Convierte una reserva recibida en JSON en el modelo utilizado
+     * por las pantallas de Android.
+     *
+     * @param json objeto JSON que contiene los datos de la reserva
+     * @return reserva con sus datos de creación, estado y cancelación
+     */
     private fun parsearReserva(json: JSONObject): Reserva {
+
+        /**
+         * Lee un campo de texto que puede contener null en la respuesta JSON.
+         *
+         * @param clave nombre del campo que se quiere leer
+         * @return contenido del campo, o null si la API lo envió como null
+         */
         fun textoOpcional(clave: String): String? {
             return if (json.isNull(clave)) null else json.getString(clave)
         }
@@ -285,7 +361,16 @@ class ApiCliente {
         )
     }
 
-    /** Crea una reserva del socio identificado por el token. */
+    /**
+     * Solicita la creación de una reserva para el socio identificado por el token.
+     *
+     * @param token token de la sesión del socio
+     * @param pistaId identificador de la pista elegida
+     * @param fecha fecha de la reserva
+     * @param horaInicio hora a la que comenzará
+     * @param duracionHoras duración solicitada, de una o dos horas
+     * @return reserva confirmada y devuelta por el servidor
+     */
     suspend fun crearReserva(
         token: String,
         pistaId: Int,
@@ -317,7 +402,13 @@ class ApiCliente {
         }
     }
 
-    /** Consulta las pistas y horas disponibles para una fecha. */
+    /**
+     * Consulta el horario y la disponibilidad de todas las pistas para una fecha.
+     *
+     * @param token token de la sesión del socio
+     * @param fecha día cuya disponibilidad se quiere consultar
+     * @return horario del día con las pistas y sus franjas
+     */
     suspend fun consultarDisponibilidad(
         token: String,
         fecha: LocalDate
@@ -336,7 +427,13 @@ class ApiCliente {
         }
     }
 
-    /** Obtiene los indicadores de todos los días de un mes. */
+    /**
+     * Consulta los indicadores de disponibilidad de los días de un mes.
+     *
+     * @param token token de la sesión del socio
+     * @param mes mes que se quiere mostrar en el calendario
+     * @return resumen mensual con el estado de cada día
+     */
     suspend fun consultarCalendario(
         token: String,
         mes: YearMonth
@@ -355,7 +452,12 @@ class ApiCliente {
         }
     }
 
-    /** Obtiene las reservas del socio identificado por el token. */
+    /**
+     * Consulta las reservas del socio identificado por el token.
+     *
+     * @param token token de la sesión del socio
+     * @return lista de reservas recibida de la API
+     */
     suspend fun listarMisReservas(token: String): List<Reserva> =
         withContext(Dispatchers.IO) {
             val conexion = abrirConexion("/api/mis-reservas", "GET", token)
@@ -372,7 +474,13 @@ class ApiCliente {
             }
         }
 
-    /** Cancela una reserva propia y devuelve su estado actualizado. */
+    /**
+     * Solicita la cancelación completa de una reserva propia.
+     *
+     * @param token token de la sesión del socio
+     * @param reservaId identificador de la reserva que se quiere cancelar
+     * @return reserva con el estado actualizado tras la cancelación
+     */
     suspend fun cancelarMiReserva(token: String, reservaId: Int): Reserva =
         withContext(Dispatchers.IO) {
             val conexion = abrirConexion(

@@ -11,17 +11,35 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.NoSuchElementException;
 
+/**
+ * Expone las operaciones de consulta, creación y cancelación
+ * de las reservas del socio autenticado.
+ */
 @RestController
 @RequestMapping("/api/mis-reservas")
 public class MisReservasController {
     private final ReservaService servicio;
     private final CuentaRepository cuentas;
 
+    /**
+     * Recibe el servicio de reservas y el repositorio que relaciona
+     * la cuenta autenticada con su ficha de socio.
+     *
+     * @param servicio operaciones de reserva
+     * @param cuentas  acceso a las cuentas
+     */
     public MisReservasController(ReservaService servicio, CuentaRepository cuentas) {
         this.servicio = servicio;
         this.cuentas = cuentas;
     }
 
+    /**
+     * Crea una reserva para el socio asociado a la cuenta autenticada.
+     *
+     * @param datos          pista, fecha, hora y duración solicitadas
+     * @param authentication sesión de la que se obtiene la cuenta del socio
+     * @return 201 con la reserva creada, o un error HTTP si no puede crearse
+     */
     @PostMapping
     public ResponseEntity<?> crear(
             @RequestBody(required = false) CrearReservaPeticion datos,
@@ -63,7 +81,13 @@ public class MisReservasController {
         }
     }
 
-    /** Lista únicamente las reservas del socio asociado a la sesión. */
+    /**
+     * Lista las reservas del socio asociado a la cuenta autenticada,
+     * incluidas las canceladas.
+     *
+     * @param authentication sesión de la que se obtiene la cuenta del socio
+     * @return 200 con las reservas, o 401 si la cuenta no tiene socio asociado
+     */
     @GetMapping
     public ResponseEntity<?> listar(Authentication authentication) {
         int cuentaId = (Integer) authentication.getPrincipal();
@@ -80,7 +104,14 @@ public class MisReservasController {
         return ResponseEntity.ok(servicio.listarPorSocio(socioId));
     }
 
-    /** Cancela una reserva del socio identificado por la sesión. */
+    /**
+     * Cancela una reserva propia si aún cumple las reglas de plazo.
+     *
+     * @param id             identificador de la reserva
+     * @param authentication sesión de la que se obtiene el socio titular
+     * @return 200 con la reserva cancelada, 404 si no es propia
+     * o 409 si ya no puede cancelarse
+     */
     @PostMapping("/{id}/cancelacion")
     public ResponseEntity<?> cancelar(
             @PathVariable int id,

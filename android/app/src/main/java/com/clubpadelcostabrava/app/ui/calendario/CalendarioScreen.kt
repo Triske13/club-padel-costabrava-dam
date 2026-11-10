@@ -51,6 +51,21 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Locale
 
+/**
+ * Muestra el calendario de fechas reservables para el socio.
+ * Consulta los meses incluidos en el plazo de reserva, permite desplazarse
+ * entre ellos y marca los días que contienen una reserva futura confirmada.
+ * Desde el menú da acceso a la cuenta y a las reservas del socio.
+ *
+ * @param sesion sesión del socio utilizada en las consultas
+ * @param api cliente que consulta el calendario y las reservas
+ * @param onAbrirCuenta acción que abre la pantalla de cuenta
+ * @param onSeleccionarFecha acción que recibe el día elegido para reservar
+ * @param onSesionInvalida acción que vuelve al login si caduca la sesión
+ * @param mesVisible mes que debe aparecer seleccionado
+ * @param onCambiarMes acción que comunica el mes mostrado tras deslizar
+ * @param onAbrirMisReservas acción que abre la lista de reservas del socio
+ */
 @Composable
 fun CalendarioScreen(
     sesion: Sesion,

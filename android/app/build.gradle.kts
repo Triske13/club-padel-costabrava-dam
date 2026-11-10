@@ -1,6 +1,17 @@
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.dokka") version "2.2.0"
+}
+
+dokka {
+    dokkaSourceSets.configureEach {
+        documentedVisibilities.set(
+            setOf(VisibilityModifier.Public, VisibilityModifier.Private)
+        )
+    }
 }
 
 android {

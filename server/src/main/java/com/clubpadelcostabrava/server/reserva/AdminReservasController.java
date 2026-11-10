@@ -14,7 +14,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 
-/** Atiende las operaciones de reservas realizadas por administración. */
+/**
+ * Expone a administración la creación, consulta y cancelación de reservas.
+ * El acceso a estas rutas requiere el rol ADMIN.
+ */
 @RestController
 @RequestMapping("/api/admin/reservas")
 public class AdminReservasController {
@@ -22,11 +25,25 @@ public class AdminReservasController {
     private final ReservaService servicio;
     private final AvisoCancelacionService avisos;
 
+    /**
+     * Recibe el servicio de reservas y el encargado de enviar avisos.
+     *
+     * @param servicio operaciones de reserva
+     * @param avisos   envío de avisos de cancelación
+     */
     public AdminReservasController(ReservaService servicio, AvisoCancelacionService avisos) {
         this.servicio = servicio;
         this.avisos = avisos;
     }
 
+    /**
+     * Crea una reserva para el socio indicado por administración.
+     * Aplica las mismas reglas de reserva que la ruta del socio.
+     *
+     * @param datos          socio titular y datos de la reserva solicitada
+     * @param authentication sesión de la cuenta administradora
+     * @return 201 con la reserva creada, o un error HTTP si no puede crearse
+     */
     @PostMapping
     public ResponseEntity<?> crear(
             @RequestBody(required = false) CrearReservaAdminPeticion datos,
@@ -68,7 +85,14 @@ public class AdminReservasController {
         }
     }
 
-    /** Lista reservas con los filtros opcionales de administración. */
+    /**
+     * Consulta reservas mediante filtros opcionales, sin paginación.
+     *
+     * @param fechaTexto   fecha en formato ISO, o null
+     * @param pistaIdTexto identificador de pista, o null
+     * @param socioIdTexto identificador de socio, o null
+     * @return 200 con las reservas encontradas, o 400 si un filtro no es válido
+     */
     @GetMapping
     public ResponseEntity<?> listar(
             @RequestParam(value = "fecha", required = false) String fechaTexto,
@@ -97,7 +121,15 @@ public class AdminReservasController {
         return ResponseEntity.ok(servicio.listarParaAdmin(fecha, pistaId, socioId));
     }
 
-    /** Lista 50 reservas por página sin cargar todo el histórico. */
+    /**
+     * Consulta reservas en páginas de 50 elementos.
+     * Sin fecha muestra las reservas desde hoy; con fecha consulta
+     * el histórico de ese día, que debe ser anterior a hoy.
+     *
+     * @param fechaTexto  fecha histórica en formato ISO, o null para reservas desde hoy
+     * @param paginaTexto número de página empezando por cero
+     * @return 200 con la página y el indicador hayMas, o 400 si los datos no son válidos
+     */
     @GetMapping("/pagina")
     public ResponseEntity<?> listarPagina(
             @RequestParam(value = "fecha", required = false) String fechaTexto,
@@ -131,7 +163,15 @@ public class AdminReservasController {
         return ResponseEntity.ok(servicio.listarPaginaParaAdmin(fecha, pagina));
     }
 
-    /** Cancela una reserva y, una vez guardada, intenta avisar al socio. */
+    /**
+     * Cancela una reserva con motivo obligatorio y después intenta avisar al socio.
+     * El resultado del correo se informa sin deshacer la cancelación.
+     *
+     * @param id             identificador de la reserva
+     * @param datos          motivo de la cancelación
+     * @param authentication sesión de la cuenta administradora
+     * @return 200 con la reserva y el resultado del aviso, o un error HTTP
+     */
     @PostMapping("/{id}/cancelacion")
     public ResponseEntity<?> cancelar(
             @PathVariable int id,

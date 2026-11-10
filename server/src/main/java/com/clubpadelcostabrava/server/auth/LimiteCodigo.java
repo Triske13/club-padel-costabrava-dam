@@ -10,15 +10,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controla en memoria las solicitudes de código por correo e IP.
- * Sus contadores se reinician al arrancar de nuevo el servidor.
+ * Limita en memoria las solicitudes de códigos temporales por correo e IP.
+ * Los contadores se reinician al arrancar de nuevo el servidor.
  */
 @Service
 public class LimiteCodigo {
-    private final Map<String, Deque<Instant>> solicitudesPorCorreo  = new HashMap<>();
-    private final Map<String, Deque<Instant>> solicitudesPorIp  = new HashMap<>();
+    private final Map<String, Deque<Instant>> solicitudesPorCorreo = new HashMap<>();
+    private final Map<String, Deque<Instant>> solicitudesPorIp = new HashMap<>();
 
-    /** Descarta las solicitudes anteriores al inicio de la ventana de tiempo. */
+    /**
+     * Elimina del inicio de la cola las solicitudes anteriores al límite.
+     *
+     * @param anterioresA cola de instantes ordenados del más antiguo al más reciente
+     * @param limite      inicio de la ventana de tiempo que se conserva
+     */
     private void eliminarAnterioresA(Deque<Instant> anterioresA, Instant limite) {
         while (!anterioresA.isEmpty() && anterioresA.peekFirst().isBefore(limite)) {
             anterioresA.removeFirst();
@@ -26,8 +31,14 @@ public class LimiteCodigo {
     }
 
     /**
-     * Cuenta la solicitud por IP y comprueba ambos límites.
-     * Solo registra el correo cuando se permite solicitar otro código.
+     * Registra la solicitud por IP y comprueba los límites.
+     * Permite hasta 30 solicitudes por IP en una hora. Por correo permite
+     * hasta tres en una hora, separadas al menos por un minuto.
+     * Una solicitud limitada por correo sigue contando para la IP.
+     *
+     * @param correo correo normalizado al que se solicita el código
+     * @param ip     dirección IP de la petición
+     * @return PERMITIDA, CORREO_LIMITADO o IP_LIMITADA
      */
     public synchronized Resultado registrarSolicitud(String correo, String ip) {
         Instant ahora = Instant.now();
@@ -58,7 +69,7 @@ public class LimiteCodigo {
 
         if (solicitudesCorreo.size() >= 3
                 || (!solicitudesCorreo.isEmpty()
-                    && solicitudesCorreo.peekLast().isAfter(haceUnMinuto))) {
+                && solicitudesCorreo.peekLast().isAfter(haceUnMinuto))) {
             return Resultado.CORREO_LIMITADO;
         }
 
@@ -67,7 +78,9 @@ public class LimiteCodigo {
         return Resultado.PERMITIDA;
     }
 
-    /** Indica si la solicitud se permite o qué límite se ha alcanzado. */
+    /**
+     * Resultado de comprobar los límites de una solicitud de código.
+     */
     public enum Resultado {
         PERMITIDA,
         CORREO_LIMITADO,

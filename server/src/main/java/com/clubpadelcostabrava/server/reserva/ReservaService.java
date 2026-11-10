@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+/**
+ * Aplica las reglas de negocio para crear, consultar y cancelar reservas.
+ * Coordina los repositorios de reservas y socios y el horario del club.
+ */
 @Service
 public class ReservaService {
 
@@ -22,12 +26,27 @@ public class ReservaService {
     private final HorarioService horarios;
     private static final int TAMANO_PAGINA = 50;
 
+    /**
+     * Recibe los componentes necesarios para consultar reservas y socios
+     * y calcular el horario aplicable.
+     *
+     * @param reservas acceso a reservas y ocupaciones
+     * @param socios   acceso a las fichas de socios
+     * @param horarios cálculo del horario del club
+     */
     public ReservaService(ReservaRepository reservas, SocioRepository socios, HorarioService horarios) {
         this.reservas = reservas;
         this.socios = socios;
         this.horarios = horarios;
     }
 
+    /**
+     * Comprueba que la petición tenga los datos obligatorios, una pista válida
+     * y una duración de una o dos horas.
+     *
+     * @param datos petición que se va a validar
+     * @throws IllegalArgumentException si falta un dato o su valor no es válido
+     */
     private void validarDatos(CrearReservaPeticion datos) {
 
         if (datos == null
@@ -37,12 +56,19 @@ public class ReservaService {
                 || datos.duracionHoras() == null
                 || datos.pistaId() <= 0
                 || datos.duracionHoras() < 1
-                || datos.duracionHoras() > 2)
-        {
+                || datos.duracionHoras() > 2) {
             throw new IllegalArgumentException("Datos de reserva no válidos.");
         }
     }
 
+    /**
+     * Comprueba el plazo de reserva, que el inicio sea futuro y que todas
+     * las horas solicitadas quepan en el horario de apertura.
+     *
+     * @param datos petición previamente validada
+     * @param ahora fecha y hora de referencia en Europe/Madrid
+     * @throws IllegalArgumentException si la fecha o el horario no son válidos
+     */
     private void validarFechaYHorario(CrearReservaPeticion datos, LocalDateTime ahora) {
 
         LocalDate hoy = ahora.toLocalDate();
@@ -64,6 +90,14 @@ public class ReservaService {
         }
     }
 
+    /**
+     * Busca al socio y exige que su estado sea ACTIVO.
+     *
+     * @param socioId identificador del socio
+     * @return ficha del socio activo
+     * @throws NoSuchElementException si el socio no existe
+     * @throws ConflictoApiException  si el socio está inactivo
+     */
     private SocioRespuesta comprobarSocioActivo(int socioId) {
         SocioRespuesta socio = socios.buscarPorIdParaCambio(socioId).orElseThrow(() -> new NoSuchElementException("Socio no encontrado."));
 
@@ -74,7 +108,18 @@ public class ReservaService {
         return socio;
     }
 
-    /** Valida y crea una reserva junto con todas sus horas ocupadas. */
+    /**
+     * Valida y crea una reserva confirmada junto con sus ocupaciones.
+     * La operación es transaccional: si falla alguna hora, se deshacen todos los cambios.
+     *
+     * @param datos           pista, fecha, hora de inicio y duración solicitadas
+     * @param socioId         identificador del socio titular
+     * @param creadorCuentaId identificador de la cuenta que realiza la operación
+     * @return la reserva creada con los datos que reciben los clientes
+     * @throws IllegalArgumentException si los datos, la fecha o el horario no son válidos
+     * @throws NoSuchElementException   si no existe el socio o la pista
+     * @throws ConflictoApiException    si se supera el cupo o existe un solape u ocupación
+     */
     @Transactional
     public ReservaRespuesta crear(CrearReservaPeticion datos, int socioId, int creadorCuentaId) {
         validarDatos(datos);
@@ -127,7 +172,16 @@ public class ReservaService {
         return prepararRespuesta(guardada, true);
     }
 
-    /** Indica si el socio aún puede cancelar esta reserva. */
+    /**
+     * Evalúa si el socio puede cancelar una reserva confirmada.
+     * Hasta el día anterior puede cancelarla antes de su inicio; si empieza
+     * hoy, debe hacerlo dentro de los diez minutos desde su creación
+     * y siempre antes del inicio.
+     *
+     * @param reserva reserva que se comprueba
+     * @param ahora   fecha y hora de referencia
+     * @return true si el socio todavía puede cancelarla
+     */
     boolean puedeCancelarSocio(ReservaRepository.ReservaDatos reserva, ZonedDateTime ahora) {
 
         if (!"CONFIRMADA".equals(reserva.estado())) {
@@ -147,7 +201,14 @@ public class ReservaService {
         return !ahora.toInstant().isAfter(reserva.creadaEn().toInstant().plus(Duration.ofMinutes(10)));
     }
 
-    /** Indica si administración puede cancelar una reserva futura o en curso. */
+    /**
+     * Comprueba si administración puede cancelar una reserva confirmada.
+     * La cancelación se permite mientras no haya terminado.
+     *
+     * @param reserva reserva que se comprueba
+     * @param ahora   fecha y hora de referencia
+     * @return true si la reserva sigue en curso o aún no ha comenzado
+     */
     boolean puedeCancelarAdmin(
             ReservaRepository.ReservaDatos reserva,
             ZonedDateTime ahora
@@ -166,7 +227,17 @@ public class ReservaService {
         return fin.isAfter(ahora);
     }
 
-    /** Cancela una reserva propia y libera todas sus horas en una transacción. */
+    /**
+     * Cancela una reserva del socio y libera todas sus horas en una transacción.
+     * Solo permite cancelar reservas propias dentro del plazo establecido.
+     *
+     * @param reservaId identificador de la reserva
+     * @param socioId   identificador del socio que la tiene asignada
+     * @param cuentaId  identificador de la cuenta que solicita la cancelación
+     * @return la reserva actualizada en estado CANCELADA
+     * @throws NoSuchElementException si la reserva no existe o no pertenece al socio
+     * @throws ConflictoApiException  si ya está cancelada o ha vencido el plazo
+     */
     @Transactional
     public ReservaRespuesta cancelarPropia(
             int reservaId, int socioId, int cuentaId
@@ -199,12 +270,17 @@ public class ReservaService {
         return guardarCancelacion(reserva, cuentaId, null);
     }
 
-    /** Guarda una cancelación ya autorizada y libera todas sus horas. */
-    private ReservaRespuesta guardarCancelacion(
-            ReservaRepository.ReservaDatos reserva,
-            int cuentaId,
-            String motivo
-    ) {
+    /**
+     * Guarda una cancelación ya autorizada y elimina todas sus ocupaciones.
+     * Lo llaman los métodos transaccionales de cancelación.
+     *
+     * @param reserva  reserva que se va a cancelar
+     * @param cuentaId cuenta que realiza la cancelación
+     * @param motivo   motivo administrativo, o null si cancela el socio
+     * @return reserva actualizada para la respuesta
+     * @throws IllegalStateException si no se actualiza la reserva o no se liberan todas sus horas
+     */
+    private ReservaRespuesta guardarCancelacion(ReservaRepository.ReservaDatos reserva, int cuentaId, String motivo) {
         int reservaId = reserva.id();
 
         int filasActualizadas =
@@ -230,7 +306,13 @@ public class ReservaService {
         return prepararRespuesta(cancelada, false);
     }
 
-    /** Exige un motivo visible para el socio y compatible con la base de datos. */
+    /**
+     * Limpia y valida el motivo de una cancelación administrativa.
+     *
+     * @param motivo texto introducido por administración
+     * @return motivo sin espacios al principio ni al final
+     * @throws IllegalArgumentException si está vacío o supera los 200 caracteres
+     */
     private String validarMotivoAdmin(String motivo) {
         if (motivo == null || motivo.isBlank()) {
             throw new IllegalArgumentException("El motivo es obligatorio.");
@@ -247,7 +329,19 @@ public class ReservaService {
         return limpio;
     }
 
-    /** Comprueba si ADMIN puede cancelar una reserva futura o en curso. */
+    /**
+     * Cancela una reserva futura o en curso por decisión de administración.
+     * Guarda el motivo y libera las ocupaciones en una transacción.
+     * Devuelve el correo del socio para intentar el aviso después.
+     *
+     * @param reservaId     identificador de la reserva
+     * @param adminCuentaId identificador de la cuenta administradora
+     * @param motivo        explicación de la cancelación que verá el socio
+     * @return la reserva cancelada y el correo al que se intentará enviar el aviso
+     * @throws IllegalArgumentException si falta el motivo o supera el límite permitido
+     * @throws NoSuchElementException   si la reserva no existe
+     * @throws ConflictoApiException    si ya está cancelada o ha terminado
+     */
     @Transactional
     public ResultadoCancelacionAdmin cancelarAdmin(int reservaId, int adminCuentaId, String motivo) {
 
@@ -285,7 +379,13 @@ public class ReservaService {
         return new ResultadoCancelacionAdmin(cancelada, correo);
     }
 
-    /** Devuelve las reservas del socio con el permiso de cancelación actualizado. */
+    /**
+     * Consulta todas las reservas de un socio, incluidas las canceladas.
+     * Calcula para cada una si el socio aún puede cancelarla.
+     *
+     * @param socioId identificador del socio
+     * @return reservas del socio con el permiso de cancelación actualizado
+     */
     public List<ReservaRespuesta> listarPorSocio(int socioId) {
         ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
         List<ReservaRespuesta> respuesta = new ArrayList<>();
@@ -298,10 +398,16 @@ public class ReservaService {
         return List.copyOf(respuesta);
     }
 
-    /** Devuelve las reservas filtradas con el permiso de cancelación de ADMIN. */
-    public List<ReservaRespuesta> listarParaAdmin(
-            LocalDate fecha, Integer pistaId, Integer socioId
-    ) {
+    /**
+     * Consulta las reservas que coinciden con los filtros indicados.
+     * Un filtro nulo no restringe ese campo.
+     *
+     * @param fecha   fecha por la que filtrar, o null para cualquier fecha
+     * @param pistaId pista por la que filtrar, o null para cualquier pista
+     * @param socioId socio por el que filtrar, o null para cualquier socio
+     * @return reservas encontradas con el permiso de cancelación de ADMIN actualizado
+     */
+    public List<ReservaRespuesta> listarParaAdmin(LocalDate fecha, Integer pistaId, Integer socioId) {
         ZonedDateTime ahora = ZonedDateTime.now(ZoneId.of("Europe/Madrid"));
         List<ReservaRespuesta> respuesta = new ArrayList<>();
 
@@ -314,7 +420,15 @@ public class ReservaService {
         return List.copyOf(respuesta);
     }
 
-    /** Devuelve una página de reservas actuales o de la fecha indicada. */
+    /**
+     * Consulta una página de 50 reservas para administración.
+     * Sin fecha muestra reservas desde hoy; con fecha, solo las de ese día.
+     *
+     * @param fecha  fecha concreta, o null para consultar desde hoy
+     * @param pagina número de página empezando por cero
+     * @return reservas de la página e indicador de si existen más resultados
+     * @throws IllegalArgumentException si la página es negativa
+     */
     public PaginaReservasRespuesta listarPaginaParaAdmin(LocalDate fecha, int pagina) {
         if (pagina < 0) {
             throw new IllegalArgumentException("La página no puede ser negativa.");
@@ -345,7 +459,14 @@ public class ReservaService {
         return new PaginaReservasRespuesta(List.copyOf(respuesta), hayMas);
     }
 
-    /** Convierte los datos almacenados al formato que reciben los clientes. */
+    /**
+     * Convierte los datos almacenados en la respuesta enviada a los clientes.
+     * Formatea las horas como HH:mm e incluye el permiso de cancelación calculado.
+     *
+     * @param reserva       datos de la reserva obtenidos del repositorio
+     * @param puedeCancelar indica si el usuario de esta consulta puede cancelarla
+     * @return respuesta de reserva para la API
+     */
     private ReservaRespuesta prepararRespuesta(ReservaRepository.ReservaDatos reserva, boolean puedeCancelar) {
         DateTimeFormatter formatoHora = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -368,6 +489,13 @@ public class ReservaService {
         );
     }
 
-    /** Datos necesarios para enviar el aviso después de guardar la cancelación. */
-    public record ResultadoCancelacionAdmin(ReservaRespuesta reserva, String correo) {}
+    /**
+     * Reúne la reserva cancelada y el correo necesario para intentar
+     * el aviso después de completar la transacción.
+     *
+     * @param reserva reserva ya cancelada
+     * @param correo  dirección del socio al que se intentará avisar
+     */
+    public record ResultadoCancelacionAdmin(ReservaRespuesta reserva, String correo) {
+    }
 }

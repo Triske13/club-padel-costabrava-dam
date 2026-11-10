@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Atiende las operaciones de la cuenta que ha iniciado sesión. */
+/**
+ * Expone las operaciones de la cuenta que ha iniciado sesión,
+ * tanto para USER como para ADMIN.
+ */
 @RestController
 @RequestMapping("/api/mi-cuenta")
 public class MiCuentaController {
@@ -20,7 +23,13 @@ public class MiCuentaController {
     private final PasswordEncoder passwordEncoder;
     private final SesionService sesiones;
 
-    /** Recibe los componentes necesarios para gestionar la cuenta autenticada. */
+    /**
+     * Recibe los componentes necesarios para comprobar y cambiar contraseñas.
+     *
+     * @param cuentas         acceso a las cuentas
+     * @param passwordEncoder comprobación y protección de contraseñas
+     * @param sesiones        gestión de sesiones activas
+     */
     public MiCuentaController(
             CuentaRepository cuentas,
             PasswordEncoder passwordEncoder,
@@ -31,7 +40,16 @@ public class MiCuentaController {
         this.sesiones = sesiones;
     }
 
-    /** Cambia la contraseña de la cuenta autenticada y cierra todas sus sesiones. */
+    /**
+     * Cambia la contraseña tras comprobar la actual.
+     * Elimina cualquier código pendiente e invalida todas las sesiones
+     * de la cuenta para exigir un nuevo inicio de sesión.
+     *
+     * @param peticion       contraseña actual y nueva contraseña
+     * @param authentication sesión de la cuenta que solicita el cambio
+     * @return 204 si se cambió, 400 si los datos no son válidos
+     * o 401 si la sesión o la contraseña actual no son válidas
+     */
     @PutMapping("/contrasena")
     public ResponseEntity<?> cambiarContrasena(
             @RequestBody(required = false) CambiarContrasenaPeticion peticion,

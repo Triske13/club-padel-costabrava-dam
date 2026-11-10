@@ -31,7 +31,21 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
+/**
+ * Actividad principal de la aplicación Android del socio.
+ * Mantiene el estado de la sesión y decide qué pantalla de Compose se muestra:
+ * acceso, recuperación, calendario, reserva, mis reservas o cuenta.
+ */
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Inicializa la interfaz Compose y conecta las acciones de las pantallas
+     * con la API. Gestiona la navegación, los mensajes de error y el regreso
+     * al login cuando termina o deja de ser válida la sesión.
+     *
+     * @param savedInstanceState estado anterior proporcionado por Android,
+     * o null si la actividad se crea por primera vez
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -80,8 +94,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     },
-                                    onEstablecerContrasena = {
-                                            correo, codigo, nuevaContrasena ->
+                                    onEstablecerContrasena = { correo, codigo, nuevaContrasena ->
                                         scope.launch {
                                             cargando = true
                                             error = null

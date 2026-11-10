@@ -38,6 +38,17 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
+/**
+ * Muestra las reservas futuras confirmadas del socio y las canceladas
+ * por administración. Permite solicitar la cancelación de una reserva
+ * cuando la API indica que puede cancelarse y pide confirmación antes
+ * de enviarla al servidor.
+ *
+ * @param sesion sesión del socio titular de las reservas
+ * @param api cliente utilizado para consultar y cancelar reservas
+ * @param onVolver acción que regresa a la pantalla anterior
+ * @param onSesionInvalida acción que vuelve al login si caduca la sesión
+ */
 @Composable
 fun MisReservasScreen(
     sesion: Sesion,
@@ -213,7 +224,8 @@ fun MisReservasScreen(
                                         onSesionInvalida()
 
                                     e is ApiException ->
-                                        errorCancelacion = e.message ?: "No se pudo cancelar la reserva."
+                                        errorCancelacion =
+                                            e.message ?: "No se pudo cancelar la reserva."
 
                                     else ->
                                         errorCancelacion =

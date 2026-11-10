@@ -5,17 +5,29 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 
-/** Consulta los festivos locales cargados en la base de datos. */
+/**
+ * Consulta los festivos locales registrados en la base de datos.
+ */
 @Repository
 public class FestivoRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * Recibe el componente que ejecuta las consultas SQL.
+     *
+     * @param jdbcTemplate acceso JDBC a la base de datos
+     */
     public FestivoRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /** Indica si la fecha figura en la lista local de festivos. */
+    /**
+     * Comprueba si una fecha figura en la tabla de festivos.
+     *
+     * @param fecha fecha que se desea comprobar
+     * @return true si la fecha está registrada como festivo
+     */
     public boolean esFestivo(LocalDate fecha) {
         Boolean resultado = jdbcTemplate.queryForObject(
                 """

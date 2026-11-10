@@ -11,18 +11,32 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
-/** Expone el detalle diario de disponibilidad para USER y ADMIN. */
+/**
+ * Expone el detalle diario de disponibilidad para USER y ADMIN.
+ * El servicio aplica el plazo de consulta correspondiente a cada rol.
+ */
 @RestController
 @RequestMapping("/api/disponibilidad")
 public class DisponibilidadController {
 
     private final DisponibilidadService servicio;
 
+    /**
+     * Recibe el servicio que calcula la disponibilidad.
+     *
+     * @param servicio cálculo de disponibilidad diaria
+     */
     public DisponibilidadController(DisponibilidadService servicio) {
         this.servicio = servicio;
     }
 
-    /** Interpreta la fecha y delega en el servicio las reglas de consulta. */
+    /**
+     * Consulta el horario y las franjas de todas las pistas para una fecha.
+     *
+     * @param fecha          fecha en formato AAAA-MM-DD
+     * @param authentication sesión utilizada para determinar si el usuario es ADMIN
+     * @return 200 con la disponibilidad del día, o 400 si la fecha no es válida
+     */
     @GetMapping
     public ResponseEntity<?> consultar(
             @RequestParam(value = "fecha", required = false) String fecha,

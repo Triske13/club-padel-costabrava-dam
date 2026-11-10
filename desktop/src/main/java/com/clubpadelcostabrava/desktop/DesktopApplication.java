@@ -8,7 +8,17 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+/**
+ * Inicia la interfaz JavaFX y muestra la pantalla de acceso.
+ */
 public class DesktopApplication extends Application {
+
+    /**
+     * Carga la vista de acceso y configura la ventana principal.
+     *
+     * @param stage ventana principal de JavaFX
+     * @throws IOException si no puede cargarse la vista FXML
+     */
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(

@@ -11,6 +11,11 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.Locale;
 
+/**
+ * Controla la pantalla para establecer o recuperar la contraseña.
+ * Permite solicitar un código por correo y utilizarlo para guardar
+ * una contraseña nueva antes de volver al inicio de sesión.
+ */
 public class CodigoController {
 
     @FXML
@@ -28,6 +33,11 @@ public class CodigoController {
 
     private final ApiCliente api = new ApiCliente();
 
+    /**
+     * Normaliza el correo introducido y solicita un código al servidor.
+     * Mantiene una respuesta genérica para no revelar desde la interfaz
+     * si el correo corresponde a una cuenta habilitada.
+     */
     @FXML
     private void onSolicitarCodigo() {
         String correo = correoField.getText()
@@ -65,6 +75,11 @@ public class CodigoController {
         );
     }
 
+    /**
+     * Comprueba el formato del correo, del código y de la nueva contraseña.
+     * Envía los datos al servidor y, si el cambio se confirma, limpia el formulario,
+     * muestra un aviso y vuelve a la pantalla de acceso.
+     */
     @FXML
     private void onGuardarContrasena() {
         String correo = correoField.getText()
@@ -122,6 +137,10 @@ public class CodigoController {
                 );
     }
 
+    /**
+     * Abre de nuevo la pantalla de acceso sin modificar la contraseña.
+     * También se utiliza después de guardar correctamente una contraseña nueva.
+     */
     @FXML
     private void onVolver() {
         try {

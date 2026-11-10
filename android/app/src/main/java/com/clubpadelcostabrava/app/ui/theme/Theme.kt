@@ -33,6 +33,15 @@ private val LightColorScheme = lightColorScheme(
     onSurface = AzulMarino
 )
 
+/**
+ * Aplica a las pantallas los colores y la tipografía del club.
+ * Utiliza el esquema claro u oscuro según la configuración del sistema
+ * y puede emplear colores dinámicos en versiones compatibles de Android.
+ *
+ * @param darkTheme indica si se debe utilizar el esquema oscuro
+ * @param dynamicColor indica si se deben utilizar los colores dinámicos del dispositivo
+ * @param content contenido de Compose al que se aplica el tema
+ */
 @Composable
 fun ClubPadelCostaBravaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

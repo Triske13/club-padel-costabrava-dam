@@ -19,21 +19,37 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Muestra la disponibilidad diaria de cada pista en una pestaña. */
+/**
+ * Controla la agenda diaria de administración.
+ * Muestra la disponibilidad de cada pista en una pestaña y permite crear
+ * o retirar bloqueos manuales para las franjas seleccionadas.
+ */
 public class AgendaController {
 
-    @FXML private DatePicker fechaPicker;
-    @FXML private Label mensajeLabel;
-    @FXML private TabPane pistasTabPane;
-    @FXML private TableView<Bloqueo> bloqueosTable;
-    @FXML private TableColumn<Bloqueo, String> pistaBloqueoCol;
-    @FXML private TableColumn<Bloqueo, String> inicioBloqueoCol;
-    @FXML private TableColumn<Bloqueo, String> horasBloqueoCol;
-    @FXML private TableColumn<Bloqueo, String> descripcionBloqueoCol;
-    @FXML private ComboBox<Integer> horasBloqueoBox;
-    @FXML private TextField descripcionBloqueoField;
-    @FXML private Button crearBloqueoButton;
-    @FXML private Button retirarBloqueoButton;
+    @FXML
+    private DatePicker fechaPicker;
+    @FXML
+    private Label mensajeLabel;
+    @FXML
+    private TabPane pistasTabPane;
+    @FXML
+    private TableView<Bloqueo> bloqueosTable;
+    @FXML
+    private TableColumn<Bloqueo, String> pistaBloqueoCol;
+    @FXML
+    private TableColumn<Bloqueo, String> inicioBloqueoCol;
+    @FXML
+    private TableColumn<Bloqueo, String> horasBloqueoCol;
+    @FXML
+    private TableColumn<Bloqueo, String> descripcionBloqueoCol;
+    @FXML
+    private ComboBox<Integer> horasBloqueoBox;
+    @FXML
+    private TextField descripcionBloqueoField;
+    @FXML
+    private Button crearBloqueoButton;
+    @FXML
+    private Button retirarBloqueoButton;
 
 
     private final ApiCliente api = new ApiCliente();
@@ -45,7 +61,11 @@ public class AgendaController {
     private boolean retirandoBloqueo;
     private long versionConsulta;
 
-    /** Asocia cada columna de la tabla con un dato del bloqueo. */
+    /**
+     * Configura las columnas de bloqueos y los cambios de selección.
+     * Actualiza las duraciones disponibles y el botón de retirada cuando
+     * cambian la fecha, la pista, la franja o el bloqueo seleccionado.
+     */
     @FXML
     private void initialize() {
         pistaBloqueoCol.setCellValueFactory(fila ->
@@ -87,7 +107,12 @@ public class AgendaController {
         );
     }
 
-    /** Recibe la sesión y consulta inicialmente el día de hoy. */
+    /**
+     * Recibe la sesión ADMIN y consulta inicialmente la agenda del día actual.
+     *
+     * @param sesion           sesión utilizada para autorizar las peticiones
+     * @param onSesionInvalida acción para volver al login si caduca la sesión
+     */
     public void setSesion(Sesion sesion, Runnable onSesionInvalida) {
         this.sesion = sesion;
         this.onSesionInvalida = onSesionInvalida;
@@ -95,7 +120,12 @@ public class AgendaController {
         onConsultar();
     }
 
-    /** Crea una pestaña y una tabla por cada pista recibida. */
+    /**
+     * Agrupa las franjas recibidas por pista y crea una pestaña con su tabla
+     * de horas y estados para cada una.
+     *
+     * @param franjas franjas de todas las pistas devueltas por la API
+     */
     private void mostrarPistas(List<FranjaAgenda> franjas) {
         Map<Integer, List<FranjaAgenda>> porPista = new LinkedHashMap<>();
 
@@ -135,7 +165,11 @@ public class AgendaController {
         }
     }
 
-    /** Ofrece las horas consecutivas libres desde la franja seleccionada. */
+    /**
+     * Calcula las duraciones de bloqueo que pueden comenzar en la franja
+     * seleccionada. Solo ofrece horas consecutivas libres de una fecha cargada
+     * y futura, y habilita el botón de creación cuando existe una opción válida.
+     */
     private void actualizarDuracionesBloqueo() {
         horasBloqueoBox.getItems().clear();
         crearBloqueoButton.setDisable(true);
@@ -186,7 +220,14 @@ public class AgendaController {
         }
     }
 
-    /** Carga los bloqueos manuales de la fecha mostrada en la agenda. */
+    /**
+     * Consulta los bloqueos manuales de la fecha mostrada.
+     * Descarta la respuesta si corresponde a una consulta anterior o si
+     * el usuario ha cambiado la fecha mientras se cargaban los datos.
+     *
+     * @param fecha   fecha cuyos bloqueos se quieren mostrar
+     * @param version identificador de la consulta de agenda que originó la carga
+     */
     private void cargarBloqueos(LocalDate fecha, long version) {
         api.listarBloqueos(sesion.token(), fecha).whenComplete((bloqueos, fallo) ->
                 Platform.runLater(() -> {
@@ -221,7 +262,11 @@ public class AgendaController {
         );
     }
 
-    /** Crea un bloqueo a partir de la pista, la hora y la duración seleccionadas. */
+    /**
+     * Valida la pista, la fecha, la franja y la duración seleccionadas y solicita
+     * la creación de un bloqueo manual. Muestra el resultado y vuelve a consultar
+     * la agenda para reflejar las horas ocupadas.
+     */
     @FXML
     private void onCrearBloqueo() {
         if (creandoBloqueo) {
@@ -305,7 +350,10 @@ public class AgendaController {
         }));
     }
 
-    /** Permite retirar únicamente un bloqueo seleccionado que no haya comenzado. */
+    /**
+     * Habilita la retirada únicamente si hay un bloqueo seleccionado en
+     * la fecha cargada, todavía no ha comenzado y no hay otra retirada en curso.
+     */
     private void actualizarBotonRetirar() {
         Bloqueo elegido = bloqueosTable.getSelectionModel().getSelectedItem();
 
@@ -319,7 +367,11 @@ public class AgendaController {
         retirarBloqueoButton.setDisable(!permitido);
     }
 
-    /** Confirma la retirada y actualiza la agenda cuando responde el servidor. */
+    /**
+     * Pide confirmación para retirar el bloqueo seleccionado.
+     * Envía la petición al servidor y vuelve a consultar la agenda cuando
+     * recibe el resultado.
+     */
     @FXML
     private void onRetirarBloqueo() {
         actualizarBotonRetirar();
@@ -376,6 +428,11 @@ public class AgendaController {
                 }));
     }
 
+    /**
+     * Consulta la disponibilidad de la fecha seleccionada y carga después
+     * sus bloqueos manuales. Utiliza una versión de consulta para descartar
+     * respuestas antiguas si el usuario cambia de fecha antes de recibirlas.
+     */
     @FXML
     private void onConsultar() {
         LocalDate fecha = fechaPicker.getValue();
