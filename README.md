@@ -1,77 +1,62 @@
 # Club Pádel Costa Brava — Proyecto final DAM
 
-Proyecto académico para gestionar socios, pistas, mantenimiento y reservas de un club de pádel situado en Roses (Girona).
+Sistema cliente-servidor para gestionar socios, pistas, bloqueos y reservas de un club de pádel ficticio en Roses (Girona).
 
+## Aplicaciones
 
-## Aplicaciones previstas
+- **Android (Kotlin y Jetpack Compose):** activación o recuperación por código de correo, acceso de socio, calendario, disponibilidad, reservas propias, cancelación, cambio de contraseña y cierre de sesión.
+- **Windows (Java 21 y JavaFX):** acceso ADMIN, gestión de socios, agenda por pista, bloqueos, creación y cancelación de reservas, consulta de reservas actuales e histórico por fecha, y gestión de la propia contraseña.
+- **Servidor (Java 21 y Spring Boot):** API REST/JSON, autenticación y roles, reglas de negocio, transacciones, acceso a PostgreSQL y envío de correo.
+- **Base de datos (PostgreSQL):** esquema versionado con Flyway; cuatro pistas y 14 festivos de Roses correspondientes a 2026.
 
-* **Android (Kotlin):** activación de la cuenta del socio mediante un código enviado por correo, consulta del calendario y gestión de sus reservas.
-* **Escritorio para Windows (Java y JavaFX):** administración de socios, reservas, pistas y bloqueos de mantenimiento.
-* **Servidor (Java y Spring Boot):** API REST, autenticación y reglas de negocio.
-* **Base de datos (PostgreSQL):** almacenamiento de socios, cuentas, pistas, reservas, bloqueos y festivos.
+Los clientes se comunican con el servidor; solo este accede directamente a PostgreSQL.
+El servidor usa la zona horaria Europe/Madrid para calcular los horarios y los plazos de reserva.
 
-Los dos clientes se comunicarán con el servidor. Solo el servidor accederá a la base de datos.
+## Estado del proyecto
 
+El servidor Spring Boot y PostgreSQL están desplegados en Railway. El
+[diagnóstico de la API](https://padel-spring-production.up.railway.app/api/diagnostico)
+permite comprobar que el servicio responde y tiene acceso a las cuatro pistas.
 
-## Estructura del repositorio
+Se ha verificado el inicio de sesión como administrador y como socio, así como
+la recepción del código de activación por correo. En la prueba integrada se
+creó una reserva desde el APK firmado de Android y se comprobó que aparecía en
+la aplicación de administración de Windows.
 
-* server/: código del servidor.
-* android/: aplicación para socios.
-* desktop/: aplicación de administración para Windows.
-* database/: esquema SQL, las migraciones ejecutables están en server/src/main/resources/db/migration/; database/esquema.sql queda como referencia.
-* docs/: documentación del proyecto.
+El código fuente conserva las direcciones locales por defecto. El APK de
+entrega y el paquete portátil de Windows están configurados para conectarse a
+Railway.
 
+Los datos iniciales incluyen los festivos de Roses de 2026.
 
-## Estado
+## Estructura
 
-El servidor ya arranca; Android y escritorio ya arrancan y consultan la API, mientras sus funciones de reservas y administración siguen pendientes.
-
-La migración V2 carga los 14 festivos de Roses correspondientes a 2026. La lista local todavía no cubre 2027, que queda fuera del alcance inicial. Fuente: calendario de fiestas laborales del Ayuntamiento de Roses.
-
-El prototipo contempla cuatro pistas, reservas de una o dos horas y horarios según el día de la semana o los festivos aplicables.
-
-El trabajo se organiza en GitHub Projects.
-
-
-## Puesta en marcha del servidor
-
-Instalar Java 21 o superior y PostgreSQL.
-
-
-
-* Crear una base de datos vacía llamada club_padel_dev.
-
-
-
-* Crear server/config/application-local.properties con la URL, el usuario y la contraseña de PostgreSQL. Este archivo está excluido de Git.
-
-
-
-* Desde la carpeta server, ejecutar en PowerShell:
-
-
-
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
-
-
-
-Flyway aplicará automáticamente las migraciones de server/src/main/resources/db/migration; no hay que ejecutar database/esquema.sql manualmente. Para comprobar la conexión, abrir http://localhost:8080/api/diagnostico. La respuesta inicial debe indicar 4 pistas.
-
-
-## Ejecutar los clientes de demostración
-
-El servidor debe estar en marcha antes de abrir los clientes.
-
-- **Android:** abrir `android/` en Android Studio, seleccionar un emulador y pulsar Run. La app consulta `/api/diagnostico`. Su dirección local se define en `ApiConfig.kt`.
-- **Windows:** abrir `desktop/` en IntelliJ IDEA, ejecutar `Launcher.main()` y pulsar «Comprobar servidor». Su dirección local se define en `ApiConfig.java`.
-
+| Ruta | Contenido |
+| --- | --- |
+| `server/` | Servidor, migraciones Flyway y pruebas JUnit. |
+| `android/` | Cliente móvil para USER. |
+| `desktop/` | Cliente Windows para ADMIN. |
+| `database/esquema.sql` | Esquema SQL de referencia; no se ejecuta además de Flyway. |
+| `docs/` | Requisitos, modelo de datos y documentación. |
 
 ## Documentación
 
-* [Requisitos consolidados](docs/requisitos.md)
-* [Modelo entidad-relación](docs/modelo-er.drawio)
-* [Esquema de la base de datos](database/esquema.sql)
+- [Requisitos consolidados](docs/requisitos.md)
+- [Documentación técnica](docs/documentacion-tecnica.md)
+- [Contrato de la API REST](docs/api-rest.md)
+- [Puesta en marcha y pruebas locales](docs/puesta-en-marcha.md)
+- [Manual de usuario](docs/manual-usuario.md)
+- [Modelo entidad-relación editable](docs/modelo-er.drawio)
+- [Esquema SQL de referencia](database/esquema.sql)
 
+## Inicio rápido
 
+Instalar Java 21 y PostgreSQL, crear una base de datos vacía, configurar `server/config/application-local.properties` y las variables `APP_ADMIN_EMAIL` y `APP_ADMIN_PASSWORD` para la primera instalación. Desde `server/`:
 
-Las credenciales y configuraciones locales no deben añadirse al repositorio.
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+Flyway aplica las migraciones al arrancar. `http://localhost:8080/api/diagnostico` debe indicar cuatro pistas. Para ejecutar Windows y Android y comprobar cada módulo, seguir la [guía de puesta en marcha](docs/puesta-en-marcha.md).
+
+Las credenciales, archivos locales y datos personales reales no deben añadirse al repositorio.

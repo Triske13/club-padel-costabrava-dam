@@ -7,7 +7,7 @@
 - Dos clientes de tipos distintos: uno de usuarios y otro de escritorio para el personal. No habrá cliente web. La comunicación entre los clientes y el servidor será mediante API REST y JSON.
 - Lógica de negocio y acceso seguro a los datos en el servidor; base de datos relacional con modelos conceptual y relacional; autenticación y control de roles ADMIN y USER.
 - Repositorio accesible con un historial de commits representativo; backlog en una herramienta de gestión y captura del tablero.
-- Despliegue funcional accesible para la comprobación. 
+- Despliegue funcional accesible para la comprobación.
 
 ## 2. Alcance y arquitectura acordados
 
@@ -22,7 +22,7 @@
 ## 3. Socios, acceso y administración
 
 - Los estados administrativos del socio son únicamente **ACTIVO** e **INACTIVO**. La activación de su cuenta Android es un dato distinto de ese estado. Una ficha de socio puede existir aunque todavía no tenga contraseña Android.
-- Administración crea y edita manualmente la ficha del socio tras la inscripción presencial. Puede consultar su historial e inactivar o reactivar la ficha. No se borra físicamente la ficha como operación ordinaria. El socio consulta su ficha, pero solo puede cambiar su propia contraseña. Nombre, apellidos, teléfono, dirección, población y correo son obligatorios.
+- Administración crea y edita manualmente la ficha del socio tras la inscripción presencial. Puede consultar su historial e inactivar o reactivar la ficha. No se borra físicamente la ficha como operación ordinaria. El socio puede consultar sus reservas y cambiar su propia contraseña. Nombre, apellidos, teléfono, dirección, población y correo son obligatorios.
 - Un socio ACTIVO puede activar su cuenta Android introduciendo el correo que consta en su ficha. El sistema envía un código temporal de un solo uso para establecer su contraseña. La respuesta inicial no revela si el correo existe. Un socio INACTIVO no puede activar ni utilizar la cuenta.
 - Socios activos con cuenta activada y el administrador pueden iniciar sesión y cambiar su contraseña indicando la actual. La recuperación usa un **código de seis cifras** enviado por correo. **El correo se emplea para establecer o recuperar contraseñas y para avisar de cancelaciones hechas por ADMIN o provocadas por la inactivación**. No se envían otros avisos.
 - El código caduca a los **15 minutos**, permite **tres intentos fallidos**, es de un solo uso y sustituye al anterior de la misma cuenta. Se admite como máximo una solicitud por minuto y tres por hora por correo; hay además un límite de 30 por hora por IP. La respuesta de solicitud no revela si la cuenta existe y sigue siendo genérica cuando se supera el límite por correo.
@@ -37,7 +37,8 @@
 | Acción | Socio activo | Socio inactivo | ADMIN |
 | --- | --- | --- | --- |
 | Activar cuenta e iniciar sesión en Android | Sí | No | No aplica |
-| Consultar la ficha y reservas propias | Sí, con sesión | No | Sí, para recepción y gestión |
+| Consultar las reservas propias | Sí, con sesión | No | Sí, para recepción y gestión |
+| Consultar la ficha de un socio | No | No | Sí |
 | Editar datos de la ficha del socio | No | No | Sí |
 | Cambiar el correo del socio, con nueva comprobación de contraseña ADMIN | No | No | Sí |
 | Cambiar o recuperar contraseña propia | Sí | No obtiene acceso mientras esté inactivo | Sí |
@@ -73,7 +74,7 @@
 
 ### Android para socios
 
-- Activación por correo y código de un solo uso, inicio de sesión, consulta de la ficha propia, cambio y recuperación de contraseña.
+- Activación por correo y código de un solo uso, inicio de sesión, cambio y recuperación de contraseña.
 - Calendario mensual con días completos señalados y consulta diaria por pista y turno.
 - Selección de inicio y duración de una o dos horas consecutivas; reserva, lista de reservas propias, cancelación completa permitida y mensajes claros cuando el servidor rechaza una operación por plazo, límite u ocupación. El inicio de sesión fallido muestra un mensaje genérico, incluso si el socio está inactivo.
 

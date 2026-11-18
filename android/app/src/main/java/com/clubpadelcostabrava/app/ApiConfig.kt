@@ -8,5 +8,5 @@ object ApiConfig {
     /**
      * Dirección del servidor local vista desde el emulador de Android.
      */
-    const val BASE_URL = "http://10.0.2.2:8080"
+    const val BASE_URL = BuildConfig.API_BASE_URL
 }

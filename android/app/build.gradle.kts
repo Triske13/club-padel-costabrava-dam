@@ -14,6 +14,9 @@ dokka {
     }
 }
 
+val apiBaseUrl = providers.gradleProperty("apiBaseUrl")
+    .orElse("http://10.0.2.2:8080")
+
 android {
     namespace = "com.clubpadelcostabrava.app"
     compileSdk = 37
@@ -24,6 +27,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.get()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
